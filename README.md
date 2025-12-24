@@ -198,16 +198,6 @@ pnpm build
 pnpm preview
 ```
 
-## Documentation
-
-- `ADMIN_SETUP.md` - Admin panel setup guide
-- `SETUP_INSTRUCTIONS.md` - Detailed setup instructions
-- `SUPABASE_SETUP_STEPS.md` - Supabase setup guide
-- `ENV_LOCAL_GUIDE.md` - Environment variables guide
-- `EXPERTISE_CARD_FIELDS_GUIDE.md` - Expertise card field reference
-- `PROFILE_CARD_IMAGE_SETUP.md` - Profile card setup
-- `SEED_DATA_INSTRUCTIONS.md` - Initial data seeding
-
 ## License
 
 This project is private and proprietary.
