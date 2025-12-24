@@ -1,257 +1,217 @@
+# Portfolio Aesthetic
+
+A modern, fully-featured portfolio website with a custom CMS admin panel built with React, TypeScript, and Supabase.
+
 ## Overview
 
 This project uses the following tech stack:
-- Vite
-- Typescript
-- React Router v7 (all imports from `react-router` instead of `react-router-dom`)
-- React 19 (for frontend components)
-- Tailwind v4 (for styling)
-- Shadcn UI (for UI components library)
-- Lucide Icons (for icons)
-- Convex (for backend & database)
-- Convex Auth (for authentication)
-- Framer Motion (for animations)
-- Three js (for 3d models)
+- **Vite** - Build tool and dev server
+- **TypeScript** - Type safety
+- **React 19** - Frontend framework
+- **React Router v7** - Client-side routing
+- **Tailwind v4** - Utility-first CSS framework
+- **Shadcn UI** - UI component library
+- **Supabase** - Backend (database, authentication, storage)
+- **Framer Motion** - Animation library
+- **GSAP** - Advanced animations
+- **Three.js** - 3D graphics (for profile card)
+- **Lucide Icons** - Icon library
 
-All relevant files live in the 'src' directory.
+## Features
 
-Use pnpm for the package manager.
+- 🎨 **Modern UI/UX** - Beautiful, responsive design with smooth animations
+- 📱 **Mobile Responsive** - Fully optimized for all screen sizes
+- 🔐 **Admin Panel** - Complete CMS for managing content
+- 🎯 **SEO Optimized** - Full meta tags and Open Graph support
+- ⚡ **Fast Performance** - Optimized with lazy loading and code splitting
+- 🎭 **Custom Animations** - GSAP and Framer Motion animations
+- 🖼️ **Image Management** - Easy image URL management in CMS
+- 📝 **Content Management** - Manage pages, expertise cards, timeline, footer, and more
+
+## Tech Stack Details
+
+All relevant files live in the `src` directory.
+
+Use **pnpm** for the package manager.
 
 ## Setup
 
-This project is set up already and running on a cloud environment, as well as a convex development in the sandbox.
+### Prerequisites
+
+- Node.js 18+ 
+- pnpm (install with `npm install -g pnpm`)
+- Supabase account
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/harshjeswani30/Portfolio_Aesthetic.git
+cd Portfolio_Aesthetic
+```
+
+2. Install dependencies:
+```bash
+pnpm install
+```
+
+3. Set up environment variables:
+   - Copy `.env.example` to `.env.local` (if exists)
+   - Add your Supabase credentials:
+   ```
+   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
+
+4. Run database migrations:
+   - Go to your Supabase Dashboard → SQL Editor
+   - Run all migration files from `supabase/migrations/` in order (001, 002, 003, etc.)
+
+5. Start the development server:
+```bash
+pnpm dev
+```
 
 ## Environment Variables
 
-The project is set up with project specific CONVEX_DEPLOYMENT and VITE_CONVEX_URL environment variables on the client side.
+The project requires the following environment variables:
 
-The convex server has a separate set of environment variables that are accessible by the convex backend.
+- `VITE_SUPABASE_URL` - Your Supabase project URL
+- `VITE_SUPABASE_ANON_KEY` - Your Supabase anonymous key
 
-Currently, these variables include auth-specific keys: JWKS, JWT_PRIVATE_KEY, and SITE_URL.
+See `ENV_LOCAL_GUIDE.md` for detailed setup instructions.
 
+## Authentication
 
-# Using Authentication (Important!)
+The project uses **Supabase Auth** with admin-only access:
 
-You must follow these conventions when using authentication.
+- Only pre-approved administrators can access the admin panel
+- Default admin credentials are set up via migration
+- No public user registration
+- Admin users must exist in `public.users` table with `is_admin = true`
 
-## Auth is already set up.
+See `ADMIN_SETUP.md` for admin setup instructions.
 
-All convex authentication functions are already set up. The auth currently uses email OTP and anonymous users, but can support more.
-
-The email OTP configuration is defined in `src/convex/auth/emailOtp.ts`. DO NOT MODIFY THIS FILE.
-
-Also, DO NOT MODIFY THESE AUTH FILES: `src/convex/auth.config.ts` and `src/convex/auth.ts`.
-
-## Using Convex Auth on the backend
-
-On the `src/convex/users.ts` file, you can use the `getCurrentUser` function to get the current user's data.
-
-## Using Convex Auth on the frontend
-
-The `/auth` page is already set up to use auth. Navigate to `/auth` for all log in / sign up sequences.
-
-You MUST use this hook to get user data. Never do this yourself without the hook:
-```typescript
-import { useAuth } from "@/hooks/use-auth";
-
-const { isLoading, isAuthenticated, user, signIn, signOut } = useAuth();
-```
-
-## Protected Routes
-
-When protecting a page, use the auth hooks to check for authentication and redirect to /auth.
-
-## Auth Page
-
-The auth page is defined in `src/pages/Auth.tsx`. Redirect authenticated pages and sign in / sign up to /auth.
-
-## Authorization
-
-You can perform authorization checks on the frontend and backend.
-
-On the frontend, you can use the `useAuth` hook to get the current user's data and authentication state.
-
-You should also be protecting queries, mutations, and actions at the base level, checking for authorization securely.
-
-## Adding a redirect after auth
-
-In `src/main.tsx`, you must add a redirect after auth URL to redirect to the correct dashboard/profile/page that should be created after authentication.
-
-# Frontend Conventions
-
-You will be using the Vite frontend with React 19, Tailwind v4, and Shadcn UI.
-
-Generally, pages should be in the `src/pages` folder, and components should be in the `src/components` folder.
-
-Shadcn primitives are located in the `src/components/ui` folder and should be used by default.
-
-## Page routing
-
-Your page component should go under the `src/pages` folder.
-
-When adding a page, update the react router configuration in `src/main.tsx` to include the new route you just added.
-
-## Shad CN conventions
-
-Follow these conventions when using Shad CN components, which you should use by default.
-- Remember to use "cursor-pointer" to make the element clickable
-- For title text, use the "tracking-tight font-bold" class to make the text more readable
-- Always make apps MOBILE RESPONSIVE. This is important
-- AVOID NESTED CARDS. Try and not to nest cards, borders, components, etc. Nested cards add clutter and make the app look messy.
-- AVOID SHADOWS. Avoid adding any shadows to components. stick with a thin border without the shadow.
-- Avoid skeletons; instead, use the loader2 component to show a spinning loading state when loading data.
-
-
-## Landing Pages
-
-You must always create good-looking designer-level styles to your application. 
-- Make it well animated and fit a certain "theme", ie neo brutalist, retro, neumorphism, glass morphism, etc
-
-Use known images and emojis from online.
-
-If the user is logged in already, show the get started button to say "Dashboard" or "Profile" instead to take them there.
-
-## Responsiveness and formatting
-
-Make sure pages are wrapped in a container to prevent the width stretching out on wide screens. Always make sure they are centered aligned and not off-center.
-
-Always make sure that your designs are mobile responsive. Verify the formatting to ensure it has correct max and min widths as well as mobile responsiveness.
-
-- Always create sidebars for protected dashboard pages and navigate between pages
-- Always create navbars for landing pages
-- On these bars, the created logo should be clickable and redirect to the index page
-
-## Animating with Framer Motion
-
-You must add animations to components using Framer Motion. It is already installed and configured in the project.
-
-To use it, import the `motion` component from `framer-motion` and use it to wrap the component you want to animate.
-
-
-### Other Items to animate
-- Fade in and Fade Out
-- Slide in and Slide Out animations
-- Rendering animations
-- Button clicks and UI elements
-
-Animate for all components, including on landing page and app pages.
-
-## Three JS Graphics
-
-Your app comes with three js by default. You can use it to create 3D graphics for landing pages, games, etc.
-
-
-## Colors
-
-You can override colors in: `src/index.css`
-
-This uses the oklch color format for tailwind v4.
-
-Always use these color variable names.
-
-Make sure all ui components are set up to be mobile responsive and compatible with both light and dark mode.
-
-Set theme using `dark` or `light` variables at the parent className.
-
-## Styling and Theming
-
-When changing the theme, always change the underlying theme of the shad cn components app-wide under `src/components/ui` and the colors in the index.css file.
-
-Avoid hardcoding in colors unless necessary for a use case, and properly implement themes through the underlying shad cn ui components.
-
-When styling, ensure buttons and clickable items have pointer-click on them (don't by default).
-
-Always follow a set theme style and ensure it is tuned to the user's liking.
-
-## Toasts
-
-You should always use toasts to display results to the user, such as confirmations, results, errors, etc.
-
-Use the shad cn Sonner component as the toaster. For example:
+## Project Structure
 
 ```
-import { toast } from "sonner"
-
-import { Button } from "@/components/ui/button"
-export function SonnerDemo() {
-  return (
-    <Button
-      variant="outline"
-      onClick={() =>
-        toast("Event has been created", {
-          description: "Sunday, December 03, 2023 at 9:00 AM",
-          action: {
-            label: "Undo",
-            onClick: () => console.log("Undo"),
-          },
-        })
-      }
-    >
-      Show Toast
-    </Button>
-  )
-}
+src/
+├── components/       # Reusable React components
+│   ├── ui/          # Shadcn UI components
+│   └── ...          # Custom components
+├── pages/           # Page components
+│   ├── admin/       # Admin panel pages
+│   └── ...          # Public pages
+├── hooks/           # Custom React hooks
+├── lib/             # Utility functions and services
+│   ├── supabase.ts  # Supabase client
+│   └── supabase-cms.ts  # CMS functions
+└── ...
 ```
 
-Remember to import { toast } from "sonner". Usage: `toast("Event has been created.")`
+## Admin Panel
 
-## Dialogs
+Access the admin panel at `/admin` (requires authentication).
 
-Always ensure your larger dialogs have a scroll in its content to ensure that its content fits the screen size. Make sure that the content is not cut off from the screen.
+Features:
+- **Dashboard** - Overview and statistics
+- **Expertise Cards** - Manage expertise/service cards
+- **Timeline** - Manage timeline entries
+- **Pages** - Edit page content (Home, About, Contact)
+- **Footer** - Manage footer content and links
+- **Meta Tags** - SEO and social media meta tags
+- **Settings** - Profile and profile card image settings
 
-Ideally, instead of using a new page, use a Dialog instead. 
+## Frontend Conventions
 
-# Using the Convex backend
+### Page Routing
 
-You will be implementing the convex backend. Follow your knowledge of convex and the documentation to implement the backend.
+Pages should be in the `src/pages` folder. Update `src/main.tsx` to add new routes.
 
-## The Convex Schema
+### Styling
 
-You must correctly follow the convex schema implementation.
+- Use Tailwind CSS utility classes
+- Colors are defined in `src/index.css` using oklch format
+- Follow Shadcn UI component patterns
+- Always make components **mobile responsive**
+- Avoid nested cards and excessive shadows
+- Use thin borders instead of shadows
 
-The schema is defined in `src/convex/schema.ts`.
+### Animations
 
-Do not include the `_id` and `_creationTime` fields in your queries (it is included by default for each table).
-Do not index `_creationTime` as it is indexed for you. Never have duplicate indexes.
+- Use **Framer Motion** for component animations
+- Use **GSAP** for complex scroll-triggered animations
+- Animate: fade in/out, slide in/out, rendering animations
+- Add animations to buttons and UI interactions
 
+### Components
 
-## Convex Actions: Using CRUD operations
+- Place reusable components in `src/components`
+- Use Shadcn UI components from `src/components/ui`
+- Keep components focused and reusable
+- Use TypeScript for type safety
 
-When running anything that involves external connections, you must use a convex action with "use node" at the top of the file.
+## Backend (Supabase)
 
-You cannot have queries or mutations in the same file as a "use node" action file. Thus, you must use pre-built queries and mutations in other files.
+The backend uses Supabase for:
+- **Database** - PostgreSQL with Row Level Security (RLS)
+- **Authentication** - Email/password with admin-only access
+- **Storage** - File storage (if needed)
 
-You can also use the pre-installed internal crud functions for the database:
+### Database Schema
 
-```ts
-// in convex/users.ts
-import { crud } from "convex-helpers/server/crud";
-import schema from "./schema.ts";
+See `supabase/migrations/` for the complete database schema.
 
-export const { create, read, update, destroy } = crud(schema, "users");
+Main tables:
+- `users` - User profiles and admin status
+- `site_settings` - Global site settings
+- `pages` - Page content
+- `expertise_cards` - Expertise/service cards
+- `timeline_entries` - Timeline entries
 
-// in some file, in an action:
-const user = await ctx.runQuery(internal.users.read, { id: userId });
+### CMS Functions
 
-await ctx.runMutation(internal.users.update, {
-  id: userId,
-  patch: {
-    status: "inactive",
-  },
-});
+CMS functions are in `src/lib/supabase-cms.ts`:
+- Page management
+- Expertise card management
+- Timeline management
+- Settings management
+- Meta tags management
+
+## Development
+
+### Running the Dev Server
+
+```bash
+pnpm dev
 ```
 
+### Building for Production
 
-## Common Convex Mistakes To Avoid
+```bash
+pnpm build
+```
 
-When using convex, make sure:
-- Document IDs are referenced as `_id` field, not `id`.
-- Document ID types are referenced as `Id<"TableName">`, not `string`.
-- Document object types are referenced as `Doc<"TableName">`.
-- Keep schemaValidation to false in the schema file.
-- You must correctly type your code so that it passes the type checker.
-- You must handle null / undefined cases of your convex queries for both frontend and backend, or else it will throw an error that your data could be null or undefined.
-- Always use the `@/folder` path, with `@/convex/folder/file.ts` syntax for importing convex files.
-- This includes importing generated files like `@/convex/_generated/server`, `@/convex/_generated/api`
-- Remember to import functions like useQuery, useMutation, useAction, etc. from `convex/react`
-- NEVER have return type validators.
+### Preview Production Build
+
+```bash
+pnpm preview
+```
+
+## Documentation
+
+- `ADMIN_SETUP.md` - Admin panel setup guide
+- `SETUP_INSTRUCTIONS.md` - Detailed setup instructions
+- `SUPABASE_SETUP_STEPS.md` - Supabase setup guide
+- `ENV_LOCAL_GUIDE.md` - Environment variables guide
+- `EXPERTISE_CARD_FIELDS_GUIDE.md` - Expertise card field reference
+- `PROFILE_CARD_IMAGE_SETUP.md` - Profile card setup
+- `SEED_DATA_INSTRUCTIONS.md` - Initial data seeding
+
+## License
+
+This project is private and proprietary.
+
+## Support
+
+For issues or questions, please contact the repository owner.
