@@ -1,5 +1,5 @@
 import { useRef, useEffect } from "react";
-import { Mail, Linkedin, Twitter, ArrowUpRight, ArrowLeft } from "lucide-react";
+import { Mail, Linkedin, Twitter, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Link, useLocation } from "react-router";
@@ -103,24 +103,6 @@ const Contact = () => {
         <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px]" />
         <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-secondary/5 rounded-full blur-[100px]" />
       </div>
-      {/* Back Button */}
-      <motion.div
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.6, delay: 0.2 }}
-        className="fixed top-8 left-8 z-50"
-      >
-        <Link to="/">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground hover:text-foreground group"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
-            Back
-          </Button>
-        </Link>
-      </motion.div>
       {/* Main Content */}
       <div className="relative z-10 min-h-screen flex items-center justify-center px-8 py-24">
         <div className="max-w-4xl w-full">

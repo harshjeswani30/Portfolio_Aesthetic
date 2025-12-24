@@ -232,15 +232,6 @@ const Expertise = () => {
         />
       </div>
 
-      {/* Navigation Back Button */}
-      <div className="fixed top-8 left-8 z-50">
-        <Link to="/">
-          <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
-            Back to Home
-          </Button>
-        </Link>
-      </div>
-
       {/* Hero Section */}
       <section ref={heroRef} className="relative pt-32 pb-20 px-6 md:px-12 lg:px-24 min-h-[60vh] flex flex-col justify-center">
         <div className="max-w-5xl">

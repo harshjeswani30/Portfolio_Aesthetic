@@ -1,7 +1,5 @@
 import { EncryptedText } from "@/components/ui/encrypted-text";
-import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "react-router";
-import { ArrowLeft } from "lucide-react";
 import DecayCard from "@/components/DecayCard";
 import { Suspense, useRef, useState, useEffect, type RefObject } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -207,15 +205,6 @@ const About = () => {
 
       {/* Fixed Intro Section - Full Screen */}
       <div ref={wrapperRef} className="fixed inset-0 z-50 w-full h-screen overflow-visible bg-background will-change-opacity">
-        {/* Navigation Back Button */}
-        <div className="absolute top-8 left-8 z-[70]">
-          <Link to="/">
-            <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
-              <ArrowLeft className="mr-2 h-4 w-4" /> Back
-            </Button>
-          </Link>
-        </div>
-
         {/* Content Section - Full Screen Introduction with Card */}
         <div ref={contentRef} className="content relative w-full h-full z-10 overflow-visible">
           {/* Main Content - Full Width Section with Card */}
