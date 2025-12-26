@@ -72,7 +72,11 @@ export async function getSiteSettings() {
     .single() as any);
   
   if (error && error.code !== 'PGRST116') throw error;
-  const settings = ((data as any)?.value as any) || { headerTitle: "CINEMATIC STRATEGY" };
+  const settings = ((data as any)?.value as any) || { 
+    headerTitle: "CINEMATIC STRATEGY",
+    pageTitle: "Cinematic Strategy - Strategic Consulting & Creative Direction",
+    faviconUrl: ""
+  };
   return settings;
 }
 

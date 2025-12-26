@@ -104,16 +104,21 @@ const About = () => {
   }, [profileCardSettings]);
 
   // Start encryption animation when masking is complete (backup trigger)
+  // This ensures encryption works when scrolling in both directions
   useEffect(() => {
-    if (maskingComplete && !startEncryption) {
-      // Small delay to ensure masking animation is fully complete
-      const timer = setTimeout(() => {
-        setStartEncryption(true);
-      }, 100);
-      return () => clearTimeout(timer);
-    } else if (!maskingComplete && startEncryption) {
+    if (maskingComplete) {
+      // Start encryption when masking is complete (works in both directions)
+      if (!startEncryption) {
+        const timer = setTimeout(() => {
+          setStartEncryption(true);
+        }, 100);
+        return () => clearTimeout(timer);
+      }
+    } else {
       // Stop encryption when masking is not complete (scrolling back)
-      setStartEncryption(false);
+      if (startEncryption) {
+        setStartEncryption(false);
+      }
     }
   }, [maskingComplete, startEncryption]);
   
@@ -168,11 +173,13 @@ const About = () => {
           trigger: scrollSpacerRef.current,
           start: "top top",
           end: "bottom bottom",
-          scrub: 2,
+          scrub: 2, // Smooth scrubbing - works bidirectionally
           pin: wrapperRef.current, // Pin the wrapper to keep introduction section fixed
-          pinSpacing: true,
+          pinSpacing: false, // Disable pin spacing to remove extra space after fade out
           invalidateOnRefresh: true,
           anticipatePin: 1,
+          // Ensure animations work in both directions
+          refreshPriority: 1,
         }
       });
 
@@ -185,16 +192,35 @@ const About = () => {
         ease: "power2.inOut",
         duration: 1,
         willChange: "transform, opacity",
+        onUpdate: function() {
+          // Track progress continuously for bidirectional animation
+          const progress = this.progress();
+          if (progress >= 0.5) {
+            // Masking is mostly complete
+            setMaskingComplete(true);
+            setIntroVisible(true);
+          } else {
+            // Masking is not complete
+            setMaskingComplete(false);
+            setIntroVisible(false);
+            setStartEncryption(false);
+          }
+        },
         onComplete: () => {
-          // Start encryption animation and show profile card when masking is complete
+          // Ensure states are set when animation completes
           setMaskingComplete(true);
           setStartEncryption(true);
-          setIntroVisible(true); // Show profile card when masking completes
+          setIntroVisible(true);
         },
         onReverseComplete: () => {
+          // Reset when scrolling back to start
           setMaskingComplete(false);
           setStartEncryption(false);
-          setIntroVisible(false); // Hide profile card when scrolling back
+          setIntroVisible(false);
+        },
+        onReverseStart: () => {
+          // Start hiding encryption when reverse animation begins
+          setStartEncryption(false);
         }
       });
 
@@ -216,8 +242,18 @@ const About = () => {
             stagger: 0.15,
             ease: "power3.out",
             willChange: "transform, opacity",
+            onUpdate: function() {
+              // Track text animation progress for bidirectional control
+              const progress = this.progress();
+              // Text animation should work smoothly in both directions
+              // States are controlled by masking animation progress
+            },
+            onReverseStart: () => {
+              // Start hiding when text animation reverses
+              setStartEncryption(false);
+            },
             onReverseComplete: () => {
-              // Hide intro and encryption when scrolling back
+              // Hide intro and encryption when scrolling back completely
               setIntroVisible(false);
               setStartEncryption(false);
             }
@@ -233,57 +269,138 @@ const About = () => {
       }
 
       // Track scroll progress for additional state management
+      // This handles profile card visibility in both directions (scroll up and down)
       const progressTrigger = ScrollTrigger.create({
         trigger: scrollSpacerRef.current,
         start: "top top",
         end: "+=50%",
         invalidateOnRefresh: true,
         onUpdate: (self) => {
+          // Control masking and encryption based on progress
+          // This ensures profile card shows/hides smoothly during scroll in both directions
           if (self.progress >= 0.5) {
+            // Masking is complete - show profile card and start encryption
             setMaskingComplete(true);
+            setIntroVisible(true);
+            // Start encryption when masking is complete (works in both directions)
+            if (!startEncryption) {
+              setStartEncryption(true);
+            }
           } else {
+            // Masking is not complete - hide profile card and stop encryption
             setMaskingComplete(false);
             setStartEncryption(false);
+            setIntroVisible(false);
           }
         },
+        onEnter: () => {
+          // When entering the trigger zone (scrolling down), show profile card
+          setMaskingComplete(true);
+          setIntroVisible(true);
+        },
         onLeaveBack: () => {
+          // When leaving back (scrolling up past the start), hide everything
           setMaskingComplete(false);
           setStartEncryption(false);
-          setIntroVisible(false); // Hide intro (which hides profile card) when scrolling back
+          setIntroVisible(false);
+        },
+        onEnterBack: () => {
+          // When entering back (scrolling down again after scrolling up), show profile card
+          setMaskingComplete(true);
+          setStartEncryption(true);
+          setIntroVisible(true);
         }
       });
 
-      // Hold phase after masking
-      maskTl.to({}, { duration: 1.5 });
+      // Hold phase after masking - reduced for faster transition
+      maskTl.to({}, { duration: 0.5 });
 
       // Fade out wrapper and fade in timeline (mobile portrait)
       // Also hide intro and profile card when wrapper fades out
       maskTl.call(() => {
         setIntroVisible(false);
         setStartEncryption(false);
-      }, [], "-=0.5");
+      }, [], "-=0.3"); // Call slightly before fade out starts
       
+      // Fade out wrapper - faster duration for immediate transition
+      // Also hide it completely to remove any space
       maskTl.to(wrapperRef.current, {
         opacity: 0,
         autoAlpha: 0,
-        duration: 1,
-        ease: "power2.inOut",
+        duration: 0.6, // Reduced from 1 to 0.6 for faster fade
+        ease: "power2.in",
         pointerEvents: "none",
-        willChange: "opacity"
+        willChange: "opacity",
+        onComplete: () => {
+          // Completely hide wrapper to remove any space
+          if (wrapperRef.current) {
+            gsap.set(wrapperRef.current, {
+              display: 'none',
+              visibility: 'hidden',
+              position: 'absolute', // Remove from flow
+              width: 0,
+              height: 0,
+              overflow: 'hidden'
+            });
+          }
+        },
+        onReverseStart: () => {
+          // Reset wrapper display immediately when scrolling back starts
+          if (wrapperRef.current) {
+            gsap.set(wrapperRef.current, {
+              display: 'block',
+              visibility: 'visible',
+              position: 'fixed', // Restore fixed position
+              width: '100%',
+              height: '100vh',
+              overflow: 'visible',
+              opacity: 1,
+              autoAlpha: 1
+            });
+          }
+        },
+        onReverseComplete: () => {
+          // Ensure wrapper is fully visible when reverse completes
+          if (wrapperRef.current) {
+            gsap.set(wrapperRef.current, {
+              opacity: 1,
+              autoAlpha: 1,
+              pointerEvents: 'auto'
+            });
+          }
+        }
       });
 
-      // Fade in timeline
+      // Fade in timeline - starts immediately when wrapper starts fading out
+      // Using "-=0.2" to start slightly before wrapper fade out completes for seamless transition
       maskTl.fromTo(
         timelineRef.current,
-        { opacity: 0, y: 100 },
+        { opacity: 0, y: 80 }, // Reduced y from 100 to 80 for faster appearance
         {
           opacity: 1,
           y: 0,
-          duration: 1,
+          duration: 0.8, // Slightly faster than wrapper fade out
           ease: "power2.out",
-          willChange: "transform, opacity"
+          willChange: "transform, opacity",
+          onReverseStart: () => {
+            // Ensure timeline fades out smoothly when scrolling back
+            if (timelineRef.current) {
+              gsap.set(timelineRef.current, {
+                willChange: "transform, opacity"
+              });
+            }
+          },
+          onReverseComplete: () => {
+            // Ensure timeline is fully hidden when reverse completes
+            if (timelineRef.current) {
+              gsap.set(timelineRef.current, {
+                opacity: 0,
+                y: 80
+              });
+            }
+          }
         },
-        "<" // Start at the same time as wrapper fade out
+        "-=0.2" // Start 0.2s before wrapper fade out completes (overlaps for seamless transition)
       );
 
       return () => {
@@ -651,13 +768,13 @@ const About = () => {
           {/* Main Content - Full Width Section with Card */}
           <div 
             ref={textContentRef} 
-            className="relative z-20 w-full h-full flex flex-col justify-center px-8 md:px-20 bg-background/80 backdrop-blur-sm overflow-visible"
+            className="relative z-30 w-full h-full flex flex-col justify-center px-8 md:px-20 bg-background/80 backdrop-blur-sm overflow-visible"
             style={{
-              paddingTop: isMobilePortrait ? '8rem' : undefined,
+              paddingTop: isMobilePortrait ? '4rem' : undefined, // Reduced padding to minimize space
             }}
           >
             {/* Profile Card - Positioned on Right Side (Desktop & Mobile Landscape) */}
-            <div ref={profileCardRef} className={`absolute right-0 top-0 bottom-0 z-[25] flex items-center justify-center will-change-[transform,opacity] ${isMobilePortrait ? 'hidden' : isMobileLandscape ? 'opacity-100 visible pr-0 translate-x-[20px]' : 'opacity-0 invisible pr-8 md:pr-20 translate-x-[-40px] md:translate-x-[-60px]'} w-full md:w-1/2 h-full`}>
+            <div ref={profileCardRef} className={`absolute right-0 top-0 bottom-0 z-10 flex items-center justify-center will-change-[transform,opacity] ${isMobilePortrait ? 'hidden' : isMobileLandscape ? 'opacity-100 visible pr-0 translate-x-[20px]' : 'opacity-0 invisible pr-8 md:pr-20 translate-x-[-40px] md:translate-x-[-60px]'} w-full md:w-1/2 h-full`}>
               <Suspense fallback={null}>
                 <div 
                   ref={profileCardInnerRef}
@@ -704,64 +821,45 @@ const About = () => {
                         animate={startEncryption}
                       />
                     </div>
+
+                    {/* Profile Card - Inside Introduction Area (Mobile Portrait Only) */}
+                    {isMobilePortrait && (
+                      <div className="flex justify-end items-center mt-2 w-full pr-6">
+                        <Suspense fallback={null}>
+                          <div className="relative w-full max-w-[380px]">
+                            <DecayCard 
+                              image={profileCardSettings?.cardImageUrl ? convertDriveUrlToDirectImageUrl(profileCardSettings.cardImageUrl) : 'https://picsum.photos/300/400?grayscale'}
+                              width={380}
+                              height={507}
+                            />
+                            {/* Overlay Text - Click to dismiss */}
+                            {!overlayDismissed && (
+                              <div 
+                                onClick={() => setOverlayDismissed(true)}
+                                className="absolute inset-0 flex items-center justify-center cursor-pointer group transition-all duration-500 z-10 rounded-lg"
+                              >
+                                <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] rounded-lg group-hover:bg-black/50 transition-colors" />
+                                <p className="relative z-10 text-white text-sm font-medium px-4 py-2 rounded-md bg-white/10 backdrop-blur-sm border border-white/20 group-hover:bg-white/20 transition-colors">
+                                  Click to view
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </Suspense>
+                      </div>
+                    )}
                   </div>
 
                   {/* Info Cards - Horizontal Layout */}
-                  <div className="flex flex-nowrap gap-4 mt-4 overflow-x-auto pb-2 md:overflow-visible no-scrollbar animate-text opacity-0 invisible will-change-[transform,opacity]">
+                  <div className={`flex flex-nowrap overflow-x-auto md:overflow-visible no-scrollbar animate-text opacity-0 invisible will-change-[transform,opacity] ${isMobilePortrait ? 'justify-end pr-6 mt-0.5 gap-2 pb-8' : 'mt-4 gap-4 pb-2'}`}>
                     {infoCards.map((card, index) => (
-                      <div key={index} className="group p-4 border border-white/10 bg-white/5 backdrop-blur-sm rounded-lg hover:bg-white/10 transition-colors duration-300 min-w-[140px] shrink-0">
-                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">{card.label}</h3>
-                        <p className="text-lg font-display text-foreground group-hover:text-primary transition-colors whitespace-nowrap">{card.value}</p>
+                      <div key={index} className={`group border border-white/10 bg-white/5 backdrop-blur-sm rounded-lg hover:bg-white/10 transition-colors duration-300 shrink-0 ${isMobilePortrait ? 'p-2 min-w-[85px] max-w-[105px]' : 'p-4 min-w-[140px]'}`}>
+                        <h3 className={`font-bold uppercase tracking-widest text-muted-foreground mb-0.5 ${isMobilePortrait ? 'text-[7px] leading-tight' : 'text-[10px] mb-1'}`}>{card.label}</h3>
+                        <p className={`font-display text-foreground group-hover:text-primary transition-colors whitespace-nowrap ${isMobilePortrait ? 'text-[11px] leading-tight' : 'text-lg'}`}>{card.value}</p>
                       </div>
                     ))}
                   </div>
 
-                  {/* Profile Card - Below Info Cards (Mobile Portrait Only) */}
-                  {isMobilePortrait && (
-                    <div 
-                      className="flex justify-end items-center mb-8 w-full pr-6"
-                      style={{ 
-                        transform: introVisible 
-                          ? 'translateY(-24px) translateX(8px) scale(1)' 
-                          : 'translateY(40px) translateX(8px) scale(0.95)',
-                        willChange: 'transform, opacity',
-                        opacity: introVisible ? 1 : 0,
-                        transition: 'opacity 0.6s ease-out, transform 0.8s cubic-bezier(0.22, 1, 0.36, 1)',
-                        pointerEvents: introVisible ? 'auto' : 'none',
-                      }}
-                    >
-                      <Suspense fallback={null}>
-                        <div 
-                          className="relative w-full max-w-[380px]" 
-                          style={{ 
-                            transform: 'none',
-                            willChange: 'auto',
-                          }}
-                        >
-                          <DecayCard 
-                            image={profileCardSettings?.cardImageUrl ? convertDriveUrlToDirectImageUrl(profileCardSettings.cardImageUrl) : 'https://picsum.photos/300/400?grayscale'}
-                            width={380}
-                            height={507}
-                          />
-                          {/* Overlay Text - Click to dismiss */}
-                          {!overlayDismissed && (
-                            <div 
-                              onClick={() => setOverlayDismissed(true)}
-                              className="absolute inset-0 flex items-center justify-center cursor-pointer group transition-all duration-500 z-10 rounded-lg"
-                              style={{ pointerEvents: 'auto' }}
-                            >
-                              <div className="text-center px-6 py-4 transform transition-transform duration-300 group-hover:scale-105">
-                                <p className="text-white text-sm md:text-base font-medium tracking-[0.15em] uppercase letter-spacing-wider opacity-0 animate-[fadeIn_0.8s_ease-out_0.2s_forwards] drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
-                                  Click in the black area
-                                </p>
-                                <div className="w-16 h-px bg-white/70 mx-auto mt-4 opacity-0 animate-[fadeIn_0.8s_ease-out_0.4s_forwards]"></div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </Suspense>
-                    </div>
-                  )}
                 </div>
               </div>
           </div>

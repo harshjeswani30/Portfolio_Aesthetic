@@ -3,6 +3,7 @@ import { InstrumentationProvider } from "@/instrumentation.tsx";
 import { SupabaseAuthProvider } from "@/components/providers/SupabaseAuthProvider";
 import { ThemeProvider, useTheme } from "@/components/providers/ThemeProvider";
 import { MetaTags } from "@/components/MetaTags";
+import { DocumentHead } from "@/components/DocumentHead";
 import { StrictMode, useEffect, lazy, Suspense, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router";
@@ -127,6 +128,7 @@ createRoot(document.getElementById("root")!).render(
         <SupabaseAuthProvider>
           <BrowserRouter>
           <MetaTags />
+          <DocumentHead />
           <RouteSyncer />
           <ScrollToTop />
           <ThemeRouteGuard />

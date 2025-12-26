@@ -39,7 +39,7 @@ const Contact = () => {
           twitter: ""
         }
       : {
-          tagline: "Get in Touch",
+          tagline: "Harsh Jeswani",
           title: "Let's Connect",
           description: "Available for strategic consulting, creative collaborations, and meaningful conversations about design and innovation.",
           email: "hello@example.com",

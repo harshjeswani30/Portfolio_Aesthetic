@@ -28,11 +28,11 @@ export default function PagesManager() {
     }
   };
 
-  const handleSiteSettingsSave = async (headerTitle: string) => {
+  const handleSiteSettingsSave = async (settings: { headerTitle: string; pageTitle: string; faviconUrl: string }) => {
     try {
       const { error } = await supabase
         .from('site_settings')
-        .upsert({ key: 'general', value: { headerTitle } } as any, { onConflict: 'key' });
+        .upsert({ key: 'general', value: settings } as any, { onConflict: 'key' });
       if (error) throw error;
       toast.success("Site settings updated successfully");
     } catch (error) {
@@ -243,7 +243,7 @@ function AboutEditor({ initialData, onSave }: { initialData: any, onSave: (data:
 
 function ContactEditor({ initialData, onSave }: { initialData: any, onSave: (data: any) => void }) {
   const [formData, setFormData] = useState({
-    tagline: "Get in Touch",
+    tagline: "Harsh Jeswani",
     title: "Let's Connect",
     description: "Available for strategic consulting, creative collaborations, and meaningful conversations about design and innovation.",
     email: "hello@example.com",
@@ -306,20 +306,24 @@ function ContactEditor({ initialData, onSave }: { initialData: any, onSave: (dat
   );
 }
 
-function SiteSettingsEditor({ initialData, onSave }: { initialData: any, onSave: (headerTitle: string) => void }) {
+function SiteSettingsEditor({ initialData, onSave }: { initialData: any, onSave: (settings: { headerTitle: string; pageTitle: string; faviconUrl: string }) => void }) {
   const [headerTitle, setHeaderTitle] = useState("CINEMATIC STRATEGY");
+  const [pageTitle, setPageTitle] = useState("Cinematic Strategy - Strategic Consulting & Creative Direction");
+  const [faviconUrl, setFaviconUrl] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (initialData?.headerTitle) {
-      setHeaderTitle(initialData.headerTitle);
+    if (initialData) {
+      if (initialData.headerTitle) setHeaderTitle(initialData.headerTitle);
+      if (initialData.pageTitle) setPageTitle(initialData.pageTitle);
+      if (initialData.faviconUrl) setFaviconUrl(initialData.faviconUrl);
     }
   }, [initialData]);
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await onSave(headerTitle);
+      await onSave({ headerTitle, pageTitle, faviconUrl });
     } finally {
       setIsSaving(false);
     }
@@ -329,7 +333,7 @@ function SiteSettingsEditor({ initialData, onSave }: { initialData: any, onSave:
     <Card className="bg-card/50 border-white/5">
       <CardHeader>
         <CardTitle>Site Settings</CardTitle>
-        <CardDescription>Manage global site settings like the header title.</CardDescription>
+        <CardDescription>Manage global site settings like the header title, page title, and favicon.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
@@ -340,6 +344,26 @@ function SiteSettingsEditor({ initialData, onSave }: { initialData: any, onSave:
             placeholder="CINEMATIC STRATEGY"
           />
           <p className="text-xs text-muted-foreground">This appears in the top-left corner of the landing page.</p>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Page Title (Browser Tab)</Label>
+          <Input 
+            value={pageTitle} 
+            onChange={(e) => setPageTitle(e.target.value)} 
+            placeholder="Cinematic Strategy - Strategic Consulting & Creative Direction"
+          />
+          <p className="text-xs text-muted-foreground">This appears in the browser tab title.</p>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Favicon URL</Label>
+          <Input 
+            value={faviconUrl} 
+            onChange={(e) => setFaviconUrl(e.target.value)} 
+            placeholder="https://example.com/favicon.svg or data:image/svg+xml,..."
+          />
+          <p className="text-xs text-muted-foreground">URL or data URI for the favicon. Leave empty to use default.</p>
         </div>
 
         <div className="flex justify-end">

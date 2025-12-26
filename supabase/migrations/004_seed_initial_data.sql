@@ -9,6 +9,8 @@ VALUES (
   'general',
   '{
     "headerTitle": "CINEMATIC STRATEGY",
+    "pageTitle": "Cinematic Strategy - Strategic Consulting & Creative Direction",
+    "faviconUrl": "",
     "siteName": "Portfolio",
     "description": "Strategic portfolio showcasing expertise and achievements"
   }'::jsonb
@@ -42,14 +44,12 @@ VALUES (
   'contact',
   'Contact',
   '{
+    "tagline": "Harsh Jeswani",
     "title": "Get in Touch",
     "description": "Let''s discuss how we can work together.",
     "email": "harshjeswani30@gmail.com",
-    "socialLinks": {
-      "linkedin": "https://linkedin.com/in/harshjeswani",
-      "github": "https://github.com/harshjeswani",
-      "twitter": "https://twitter.com/harshjeswani"
-    }
+    "linkedin": "https://linkedin.com/in/harshjeswani",
+    "twitter": "https://twitter.com/harshjeswani"
   }'::jsonb
 )
 ON CONFLICT (slug) DO UPDATE SET content = EXCLUDED.content;
