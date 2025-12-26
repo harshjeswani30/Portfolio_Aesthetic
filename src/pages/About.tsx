@@ -13,11 +13,13 @@ import { usePage, useTimeline, useProfileCardSettings, useAboutFooterText } from
 import PillNav from "@/components/PillNav";
 import FloatingActionMenu from "@/components/FloatingActionMenu";
 import { User, Briefcase, Mail } from "lucide-react";
+import { useTheme } from "@/components/providers/ThemeProvider";
 
 gsap.registerPlugin(ScrollTrigger);
 
 const About = () => {
   const isMobile = useIsMobile();
+  const { setTheme } = useTheme();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const scrollSpacerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -34,6 +36,11 @@ const About = () => {
   const [maskingComplete, setMaskingComplete] = useState(false);
   const [introVisible, setIntroVisible] = useState(false);
   const [overlayDismissed, setOverlayDismissed] = useState(false);
+
+  // Force dark mode on About page
+  useEffect(() => {
+    setTheme('dark');
+  }, [setTheme]);
 
   // Check for mobile landscape and portrait view
   useEffect(() => {

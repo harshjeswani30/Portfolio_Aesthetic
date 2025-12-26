@@ -3,27 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash2, Save } from "lucide-react";
+import { Save } from "lucide-react";
 import { useFooterSettings, useUpdateFooterSettings } from "@/hooks/use-cms";
 import { toast } from "sonner";
-
-interface SocialLink {
-  platform: string;
-  href: string;
-  label: string;
-}
-
-interface NavLink {
-  href: string;
-  label: string;
-}
+import { SocialLinksEditor, type SocialLink } from "@/components/admin/SocialLinksEditor";
 
 interface FooterData {
   brandName: string;
   logoText: string;
   socialLinks: SocialLink[];
-  mainLinks: NavLink[];
-  legalLinks: NavLink[];
   copyright: {
     text: string;
     license?: string;
@@ -37,8 +25,6 @@ export default function FooterManager() {
     brandName: "",
     logoText: "",
     socialLinks: [],
-    mainLinks: [],
-    legalLinks: [],
     copyright: {
       text: "",
       license: "",
@@ -47,7 +33,11 @@ export default function FooterManager() {
 
   useEffect(() => {
     if (footerData) {
-      setFormData(footerData as FooterData);
+      const data = footerData as FooterData;
+      setFormData({
+        ...data,
+        socialLinks: Array.isArray(data.socialLinks) ? data.socialLinks : []
+      });
     }
   }, [footerData]);
 
@@ -61,67 +51,8 @@ export default function FooterManager() {
     }
   };
 
-  const addSocialLink = () => {
-    setFormData({
-      ...formData,
-      socialLinks: [
-        ...formData.socialLinks,
-        { platform: "twitter", href: "", label: "" },
-      ],
-    });
-  };
-
-  const removeSocialLink = (index: number) => {
-    setFormData({
-      ...formData,
-      socialLinks: formData.socialLinks.filter((_, i) => i !== index),
-    });
-  };
-
-  const updateSocialLink = (index: number, field: keyof SocialLink, value: string) => {
-    const updated = [...formData.socialLinks];
-    updated[index] = { ...updated[index], [field]: value };
-    setFormData({ ...formData, socialLinks: updated });
-  };
-
-  const addMainLink = () => {
-    setFormData({
-      ...formData,
-      mainLinks: [...formData.mainLinks, { href: "", label: "" }],
-    });
-  };
-
-  const removeMainLink = (index: number) => {
-    setFormData({
-      ...formData,
-      mainLinks: formData.mainLinks.filter((_, i) => i !== index),
-    });
-  };
-
-  const updateMainLink = (index: number, field: keyof NavLink, value: string) => {
-    const updated = [...formData.mainLinks];
-    updated[index] = { ...updated[index], [field]: value };
-    setFormData({ ...formData, mainLinks: updated });
-  };
-
-  const addLegalLink = () => {
-    setFormData({
-      ...formData,
-      legalLinks: [...formData.legalLinks, { href: "", label: "" }],
-    });
-  };
-
-  const removeLegalLink = (index: number) => {
-    setFormData({
-      ...formData,
-      legalLinks: formData.legalLinks.filter((_, i) => i !== index),
-    });
-  };
-
-  const updateLegalLink = (index: number, field: keyof NavLink, value: string) => {
-    const updated = [...formData.legalLinks];
-    updated[index] = { ...updated[index], [field]: value };
-    setFormData({ ...formData, legalLinks: updated });
+  const handleSocialLinksChange = (links: SocialLink[]) => {
+    setFormData({ ...formData, socialLinks: links });
   };
 
   if (isLoading) {
@@ -177,170 +108,14 @@ export default function FooterManager() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Social Links</CardTitle>
-              <CardDescription>Manage social media links</CardDescription>
-            </div>
-            <Button variant="outline" size="sm" onClick={addSocialLink}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Link
-            </Button>
-          </div>
+          <CardTitle>Social Links</CardTitle>
+          <CardDescription>Manage social media links for footer and contact page</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {formData.socialLinks.map((link, index) => (
-            <div key={index} className="flex gap-2 items-end">
-              <div className="flex-1">
-                <Label>Platform</Label>
-                <Input
-                  value={link.platform}
-                  onChange={(e) =>
-                    updateSocialLink(index, "platform", e.target.value)
-                  }
-                  placeholder="twitter"
-                />
-              </div>
-              <div className="flex-1">
-                <Label>URL</Label>
-                <Input
-                  value={link.href}
-                  onChange={(e) =>
-                    updateSocialLink(index, "href", e.target.value)
-                  }
-                  placeholder="https://twitter.com"
-                />
-              </div>
-              <div className="flex-1">
-                <Label>Label</Label>
-                <Input
-                  value={link.label}
-                  onChange={(e) =>
-                    updateSocialLink(index, "label", e.target.value)
-                  }
-                  placeholder="Twitter"
-                />
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => removeSocialLink(index)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
-          {formData.socialLinks.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              No social links added. Click "Add Link" to add one.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Main Navigation Links</CardTitle>
-              <CardDescription>Primary navigation links</CardDescription>
-            </div>
-            <Button variant="outline" size="sm" onClick={addMainLink}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Link
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {formData.mainLinks.map((link, index) => (
-            <div key={index} className="flex gap-2 items-end">
-              <div className="flex-1">
-                <Label>URL</Label>
-                <Input
-                  value={link.href}
-                  onChange={(e) =>
-                    updateMainLink(index, "href", e.target.value)
-                  }
-                  placeholder="#"
-                />
-              </div>
-              <div className="flex-1">
-                <Label>Label</Label>
-                <Input
-                  value={link.label}
-                  onChange={(e) =>
-                    updateMainLink(index, "label", e.target.value)
-                  }
-                  placeholder="Expertise"
-                />
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => removeMainLink(index)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
-          {formData.mainLinks.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              No main links added. Click "Add Link" to add one.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Legal Links</CardTitle>
-              <CardDescription>Legal and policy links</CardDescription>
-            </div>
-            <Button variant="outline" size="sm" onClick={addLegalLink}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Link
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {formData.legalLinks.map((link, index) => (
-            <div key={index} className="flex gap-2 items-end">
-              <div className="flex-1">
-                <Label>URL</Label>
-                <Input
-                  value={link.href}
-                  onChange={(e) =>
-                    updateLegalLink(index, "href", e.target.value)
-                  }
-                  placeholder="#"
-                />
-              </div>
-              <div className="flex-1">
-                <Label>Label</Label>
-                <Input
-                  value={link.label}
-                  onChange={(e) =>
-                    updateLegalLink(index, "label", e.target.value)
-                  }
-                  placeholder="Privacy Policy"
-                />
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => removeLegalLink(index)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
-          {formData.legalLinks.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              No legal links added. Click "Add Link" to add one.
-            </p>
-          )}
+        <CardContent>
+          <SocialLinksEditor
+            socialLinks={formData.socialLinks}
+            onChange={handleSocialLinksChange}
+          />
         </CardContent>
       </Card>
 
@@ -383,6 +158,8 @@ export default function FooterManager() {
     </div>
   );
 }
+
+
 
 
 

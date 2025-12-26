@@ -3,7 +3,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { Footer } from "@/components/ui/footer";
-import { Github, Instagram, Linkedin, Mail, Twitter, MousePointer2, User, Briefcase } from "lucide-react";
+import { Github, Instagram, Linkedin, Mail, Twitter, MousePointer2, User, Briefcase, Facebook, Youtube, MessageCircle, Send, Phone, MessageSquare, Share2 } from "lucide-react";
 import { useNavigate, Link, useLocation } from "react-router";
 import PillNav from "@/components/PillNav";
 import { usePage, useSiteSettings, useFooterSettings, useGalleryItems, useGalleryTextSettings, useLogoSettings } from "@/hooks/use-cms";
@@ -15,28 +15,31 @@ import OrientationPrompt from "@/components/OrientationPrompt";
 import ThemeToggle from "@/components/ThemeToggle";
 import ScrollTextMotion from "@/components/ScrollTextMotion";
 import { useTheme } from "@/components/providers/ThemeProvider";
+import { PrivacyPolicy } from "@/components/legal/PrivacyPolicy";
+import { TermsOfService } from "@/components/legal/TermsOfService";
 
 gsap.registerPlugin(ScrollTrigger);
 
+// Helper to check if device is mobile portrait
+const isMobilePortrait = () => {
+  if (typeof window === 'undefined') return false;
+  return window.innerWidth <= 768 && window.innerHeight > window.innerWidth;
+};
+
 // Footer Content Component
-function FooterContent({ footerData }: { footerData: any }) {
+function FooterContent({ footerData, onPrivacyPolicyClick, onTermsOfServiceClick }: { footerData: any; onPrivacyPolicyClick?: () => void; onTermsOfServiceClick?: () => void }) {
   // Default footer data
   const defaultFooter = {
     brandName: "Cinematic Strategy",
     logoText: "CS",
     socialLinks: [
-      { platform: "twitter", href: "https://twitter.com", label: "Twitter" },
-      { platform: "instagram", href: "https://instagram.com", label: "Instagram" },
+      { platform: "gmail", href: "mailto:example@gmail.com", label: "Gmail" },
       { platform: "linkedin", href: "https://linkedin.com", label: "LinkedIn" },
     ],
     mainLinks: [
-      { href: "#", label: "Expertise" },
-      { href: "#", label: "Work" },
-      { href: "#", label: "Contact" },
-    ],
-    legalLinks: [
-      { href: "#", label: "Privacy Policy" },
-      { href: "#", label: "Terms of Service" },
+      { href: "/about", label: "About" },
+      { href: "/expertise", label: "Expertise" },
+      { href: "/contact", label: "Contact" },
     ],
     copyright: {
       text: "© 2024 Cinematic Strategy. All rights reserved.",
@@ -50,16 +53,83 @@ function FooterContent({ footerData }: { footerData: any }) {
   // Map platform names to icons
   const getIcon = (platform: string) => {
     const normalized = platform.toLowerCase();
-    if (normalized.includes("twitter") || normalized === "x") {
-      return <Twitter className="h-5 w-5" />;
+    
+    // Email/Gmail
+    if (normalized === "gmail" || normalized === "email" || normalized.includes("mail")) {
+      return <Mail className="h-5 w-5" />;
     }
-    if (normalized.includes("instagram")) {
-      return <Instagram className="h-5 w-5" />;
-    }
-    if (normalized.includes("linkedin")) {
+    
+    // Social Media Platforms
+    if (normalized === "linkedin" || normalized.includes("linkedin")) {
       return <Linkedin className="h-5 w-5" />;
     }
-    return <Twitter className="h-5 w-5" />;
+    
+    if (normalized === "twitter" || normalized === "x" || normalized.includes("twitter")) {
+      return <Twitter className="h-5 w-5" />;
+    }
+    
+    if (normalized === "instagram" || normalized.includes("instagram")) {
+      return <Instagram className="h-5 w-5" />;
+    }
+    
+    if (normalized === "github" || normalized.includes("github")) {
+      return <Github className="h-5 w-5" />;
+    }
+    
+    if (normalized === "facebook" || normalized.includes("facebook")) {
+      return <Facebook className="h-5 w-5" />;
+    }
+    
+    if (normalized === "youtube" || normalized.includes("youtube")) {
+      return <Youtube className="h-5 w-5" />;
+    }
+    
+    if (normalized === "behance" || normalized.includes("behance")) {
+      return <Share2 className="h-5 w-5" />;
+    }
+    
+    if (normalized === "dribbble" || normalized.includes("dribbble")) {
+      return <Share2 className="h-5 w-5" />;
+    }
+    
+    if (normalized === "medium" || normalized.includes("medium")) {
+      return <MessageSquare className="h-5 w-5" />;
+    }
+    
+    if (normalized === "discord" || normalized.includes("discord")) {
+      return <MessageCircle className="h-5 w-5" />;
+    }
+    
+    if (normalized === "telegram" || normalized.includes("telegram")) {
+      return <Send className="h-5 w-5" />;
+    }
+    
+    if (normalized === "whatsapp" || normalized.includes("whatsapp")) {
+      return <MessageSquare className="h-5 w-5" />;
+    }
+    
+    if (normalized === "reddit" || normalized.includes("reddit")) {
+      return <MessageCircle className="h-5 w-5" />;
+    }
+    
+    if (normalized === "pinterest" || normalized.includes("pinterest")) {
+      return <Share2 className="h-5 w-5" />;
+    }
+    
+    if (normalized === "tiktok" || normalized.includes("tiktok")) {
+      return <Share2 className="h-5 w-5" />;
+    }
+    
+    if (normalized === "snapchat" || normalized.includes("snapchat")) {
+      return <MessageSquare className="h-5 w-5" />;
+    }
+    
+    if (normalized === "twitch" || normalized.includes("twitch")) {
+      return <Youtube className="h-5 w-5" />;
+    }
+    
+    // Default fallback
+    return <Share2 className="h-5 w-5" />;
   };
 
   return (
@@ -96,8 +166,13 @@ function FooterContent({ footerData }: { footerData: any }) {
         href: link.href,
         label: link.label,
       })) || []}
-      mainLinks={footer.mainLinks || []}
-      legalLinks={footer.legalLinks || []}
+      mainLinks={[
+        { href: "/about", label: "About" },
+        { href: "/expertise", label: "Expertise" },
+        { href: "/contact", label: "Contact" },
+      ]}
+      onPrivacyPolicyClick={onPrivacyPolicyClick}
+      onTermsOfServiceClick={onTermsOfServiceClick}
       copyright={footer.copyright || { text: "" }}
     />
   );
@@ -134,11 +209,51 @@ export default function Landing() {
   const location = useLocation();
   const [hasScrolled, setHasScrolled] = useState(false);
   const [finalVideoLoaded, setFinalVideoLoaded] = useState(false);
+  const [privacyPolicyOpen, setPrivacyPolicyOpen] = useState(false);
+  const [termsOfServiceOpen, setTermsOfServiceOpen] = useState(false);
+  const [isMobilePortraitView, setIsMobilePortraitView] = useState(false);
   const finalVideoPausedTimeRef = useRef<number>(0);
   const finalVideoIsPlayingRef = useRef<boolean>(false);
   const heroVideoPausedTimeRef = useRef<number>(0);
   const heroVideoIsPlayingRef = useRef<boolean>(false);
   const { theme, setTheme } = useTheme();
+
+  // Check for mobile portrait view
+  useEffect(() => {
+    const checkMobilePortrait = () => {
+      setIsMobilePortraitView(isMobilePortrait());
+    };
+    
+    checkMobilePortrait();
+    window.addEventListener('resize', checkMobilePortrait);
+    window.addEventListener('orientationchange', checkMobilePortrait);
+    
+    return () => {
+      window.removeEventListener('resize', checkMobilePortrait);
+      window.removeEventListener('orientationchange', checkMobilePortrait);
+    };
+  }, []);
+
+  // Force hide PillNav on mobile portrait (overrides GSAP animations)
+  useEffect(() => {
+    if (pillNavRef.current) {
+      if (isMobilePortraitView) {
+        // Force hide with inline styles (highest priority)
+        pillNavRef.current.style.setProperty('display', 'none', 'important');
+        pillNavRef.current.style.setProperty('visibility', 'hidden', 'important');
+        pillNavRef.current.style.setProperty('opacity', '0', 'important');
+        pillNavRef.current.style.setProperty('pointer-events', 'none', 'important');
+        // Kill any active GSAP animations
+        gsap.killTweensOf(pillNavRef.current);
+      } else {
+        // Reset styles when not mobile portrait (let GSAP handle it)
+        pillNavRef.current.style.removeProperty('display');
+        pillNavRef.current.style.removeProperty('visibility');
+        pillNavRef.current.style.removeProperty('opacity');
+        pillNavRef.current.style.removeProperty('pointer-events');
+      }
+    }
+  }, [isMobilePortraitView]);
   
   // Save landing theme preference when it changes on Landing page
   useEffect(() => {
@@ -208,7 +323,12 @@ export default function Landing() {
   }, []);
 
   useGSAP(() => {
-    if (!wrapperRef.current || !headerRef.current || !heroRef.current || !videoRef.current || !horizontalTextRef.current || !executionTextRef.current || !finalVideoRef.current || !horizontalGalleryRef.current?.containerRef.current || !horizontalGalleryRef.current?.contentRef.current || !footerRef.current || !pillNavRef.current) return;
+    if (!wrapperRef.current || !headerRef.current || !heroRef.current || !videoRef.current || !horizontalTextRef.current || !executionTextRef.current || !finalVideoRef.current || !horizontalGalleryRef.current?.containerRef.current || !horizontalGalleryRef.current?.contentRef.current || !footerRef.current) return;
+    
+    // Skip PillNav setup if on mobile portrait
+    if (isMobilePortraitView || !pillNavRef.current) {
+      return;
+    }
 
     // Set initial state for pillNav (hidden and positioned below)
     if (pillNavRef.current) {
@@ -675,34 +795,39 @@ export default function Landing() {
     }, `finalScale+=${footerStartTime}`);
 
     // 3. PillNav appears together with footer (slight delay for smoother animation)
-    tl.to(pillNavRef.current, {
-      y: 0,
-      opacity: 1,
-      autoAlpha: 1,
-      duration: 0.6,
-      ease: "back.out(1.2)",
-      onStart: () => {
-        if (pillNavRef.current) {
-          gsap.set(pillNavRef.current, {
-            visibility: 'visible',
-            display: 'block',
-            pointerEvents: 'auto'
-          });
+    // Only animate if not on mobile portrait
+    if (!isMobilePortraitView && pillNavRef.current) {
+      tl.to(pillNavRef.current, {
+        y: 0,
+        opacity: 1,
+        autoAlpha: 1,
+        duration: 0.6,
+        ease: "back.out(1.2)",
+        onStart: () => {
+          // Check current state before setting (mobile portrait might have changed)
+          if (pillNavRef.current && !isMobilePortrait()) {
+            gsap.set(pillNavRef.current, {
+              visibility: 'visible',
+              display: 'block',
+              pointerEvents: 'auto'
+            });
+          }
+        },
+        onReverseComplete: () => {
+          // Check current state before setting (mobile portrait might have changed)
+          if (pillNavRef.current && !isMobilePortrait()) {
+            gsap.set(pillNavRef.current, {
+              visibility: 'hidden',
+              display: 'none',
+              y: 150,
+              opacity: 0,
+              autoAlpha: 0,
+              pointerEvents: 'none'
+            });
+          }
         }
-      },
-      onReverseComplete: () => {
-        if (pillNavRef.current) {
-          gsap.set(pillNavRef.current, {
-            visibility: 'hidden',
-            display: 'none',
-            y: 150,
-            opacity: 0,
-            autoAlpha: 0,
-            pointerEvents: 'none'
-          });
-        }
-      }
-    }, `finalScale+=${footerStartTime + 0.3}`); // Start slightly after footer starts (0.3s delay)
+      }, `finalScale+=${footerStartTime + 0.3}`); // Start slightly after footer starts (0.3s delay)
+    }
 
   }, { scope: wrapperRef });
 
@@ -718,7 +843,11 @@ export default function Landing() {
       });
       // Also kill any GSAP timelines
         const galleryContainer = horizontalGalleryRef.current?.containerRef.current;
-        gsap.killTweensOf([wrapperRef.current, headerRef.current, heroRef.current, videoRef.current, horizontalTextRef.current, executionTextRef.current, finalVideoRef.current, galleryContainer, footerRef.current, pillNavRef.current]);
+        const elementsToKill = [wrapperRef.current, headerRef.current, heroRef.current, videoRef.current, horizontalTextRef.current, executionTextRef.current, finalVideoRef.current, galleryContainer, footerRef.current];
+        if (pillNavRef.current) {
+          elementsToKill.push(pillNavRef.current);
+        }
+        gsap.killTweensOf(elementsToKill);
     }
     
     return () => {
@@ -729,7 +858,11 @@ export default function Landing() {
         }
       });
         const galleryContainer = horizontalGalleryRef.current?.containerRef.current;
-        gsap.killTweensOf([wrapperRef.current, headerRef.current, heroRef.current, videoRef.current, horizontalTextRef.current, executionTextRef.current, finalVideoRef.current, galleryContainer, footerRef.current, pillNavRef.current]);
+        const elementsToKill = [wrapperRef.current, headerRef.current, heroRef.current, videoRef.current, horizontalTextRef.current, executionTextRef.current, finalVideoRef.current, galleryContainer, footerRef.current];
+        if (pillNavRef.current) {
+          elementsToKill.push(pillNavRef.current);
+        }
+        gsap.killTweensOf(elementsToKill);
     };
   }, [location.pathname]);
 
@@ -799,29 +932,6 @@ export default function Landing() {
             <Link to="/about" className="hover:opacity-80 transition-opacity">ABOUT</Link>
             <Link to="/expertise" className="hover:opacity-80 transition-opacity">EXPERTISE</Link>
             <Link to="/contact" className="hover:opacity-80 transition-opacity">CONTACT</Link>
-          </div>
-
-          {/* Mobile Floating Action Menu - In Header */}
-          <div className="md:hidden">
-            <FloatingActionMenu
-              options={[
-                {
-                  label: "About",
-                  onClick: () => navigate("/about"),
-                  Icon: <User className="w-4 h-4" />,
-                },
-                {
-                  label: "Expertise",
-                  onClick: () => navigate("/expertise"),
-                  Icon: <Briefcase className="w-4 h-4" />,
-                },
-                {
-                  label: "Contact",
-                  onClick: () => navigate("/contact"),
-                  Icon: <Mail className="w-4 h-4" />,
-                },
-              ]}
-            />
           </div>
         </nav>
       </header>
@@ -1004,11 +1114,24 @@ export default function Landing() {
 
         {/* FOOTER SECTION */}
         <div ref={footerRef} className="absolute top-full left-0 right-0 w-full z-40 bg-background">
-          <FooterContent footerData={footerData} />
+          <FooterContent 
+            footerData={footerData} 
+            onPrivacyPolicyClick={() => setPrivacyPolicyOpen(true)}
+            onTermsOfServiceClick={() => setTermsOfServiceOpen(true)}
+          />
         </div>
 
-        {/* PILL NAV - Appears after footer */}
-        <div ref={pillNavRef} className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[9999] w-full max-w-fit px-4">
+        {/* PILL NAV - Appears after footer (hidden on mobile portrait only) */}
+        <div 
+          ref={pillNavRef} 
+          className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[9999] w-full max-w-fit px-4"
+          style={{
+            display: isMobilePortraitView ? 'none' : undefined,
+            visibility: isMobilePortraitView ? 'hidden' : undefined,
+            opacity: isMobilePortraitView ? 0 : undefined,
+            pointerEvents: isMobilePortraitView ? 'none' : undefined,
+          }}
+        >
           <PillNav
             items={[
               { label: 'Home', href: '/' },
@@ -1026,6 +1149,41 @@ export default function Landing() {
         </div>
 
       </div>
+
+      {/* Mobile Portrait Floating Action Menu - Fixed Position */}
+      {isMobilePortraitView && (
+        <div className="fixed top-6 right-6 z-[9999] md:hidden">
+          <FloatingActionMenu
+            options={[
+              {
+                label: "About",
+                onClick: () => navigate("/about"),
+                Icon: <User className="w-4 h-4" />,
+              },
+              {
+                label: "Expertise",
+                onClick: () => navigate("/expertise"),
+                Icon: <Briefcase className="w-4 h-4" />,
+              },
+              {
+                label: "Contact",
+                onClick: () => navigate("/contact"),
+                Icon: <Mail className="w-4 h-4" />,
+              },
+            ]}
+          />
+        </div>
+      )}
+
+      {/* Legal Overlays */}
+      <PrivacyPolicy 
+        open={privacyPolicyOpen} 
+        onOpenChange={setPrivacyPolicyOpen} 
+      />
+      <TermsOfService 
+        open={termsOfServiceOpen} 
+        onOpenChange={setTermsOfServiceOpen} 
+      />
     </div>
   );
 }

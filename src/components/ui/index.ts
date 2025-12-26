@@ -42,7 +42,6 @@ export { AspectRatio } from "./aspect-ratio"; // ~1KB - Maintain aspect ratios
 // Navigation
 export { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator, BreadcrumbEllipsis } from "./breadcrumb"; // ~4KB
 export { Tabs, TabsList, TabsTrigger, TabsContent } from "./tabs"; // ~5KB - Tab navigation
-export { NavigationMenu, NavigationMenuList, NavigationMenuItem, NavigationMenuTrigger, NavigationMenuContent, NavigationMenuLink, NavigationMenuIndicator, NavigationMenuViewport, navigationMenuTriggerStyle } from "./navigation-menu"; // ~8KB
 
 // Overlays & Dialogs
 export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "./tooltip"; // ~4KB - Hover tooltips
@@ -119,10 +118,10 @@ export { Toaster } from "./sonner"; // ~8KB - Toast notifications
 /**
  * Example: Building a navigation menu
  *
- * import { NavigationMenu, DropdownMenu } from "@/components/ui";
+ * import { DropdownMenu } from "@/components/ui";
  * import { Button, Avatar } from "@/components/ui";
  *
- * Medium bundle impact: ~15KB total
+ * Medium bundle impact: ~12KB total
  */
 
 // ============================================================================

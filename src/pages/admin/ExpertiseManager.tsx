@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useExpertiseCards, useCreateExpertiseCard, useUpdateExpertiseCard, useDeleteExpertiseCard } from "@/hooks/use-cms";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,68 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Pencil, Trash2, GripVertical } from "lucide-react";
 import { toast } from "sonner";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+// Sortable Row Component
+function SortableRow({ card, onEdit, onDelete, isDeleting }: { card: any; onEdit: (card: any) => void; onDelete: (id: string) => void; isDeleting: boolean }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: card.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <TableRow
+      ref={setNodeRef}
+      style={style}
+      className="hover:bg-white/5 border-white/5"
+    >
+      <TableCell>
+        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+          <GripVertical className="w-4 h-4 text-muted-foreground" />
+        </div>
+      </TableCell>
+      <TableCell className="font-medium">{card.title}</TableCell>
+      <TableCell className="text-muted-foreground truncate max-w-xs">{card.description}</TableCell>
+      <TableCell>{card.icon}</TableCell>
+      <TableCell className="text-right">
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" size="icon" onClick={() => onEdit(card)}>
+            <Pencil className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => onDelete(card.id)} disabled={isDeleting}>
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+}
 
 export default function ExpertiseManager() {
   const { data: cards, isLoading } = useExpertiseCards(true);
@@ -18,6 +80,51 @@ export default function ExpertiseManager() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<any>(null);
   const [imagesInput, setImagesInput] = useState<string>("");
+  const [items, setItems] = useState<any[]>([]);
+
+  // Initialize items when cards load
+  useEffect(() => {
+    if (cards && cards.length > 0) {
+      const sortedCards = [...(cards as any[])].sort((a, b) => (a.order || 0) - (b.order || 0));
+      setItems(sortedCards);
+    }
+  }, [cards]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = items.findIndex((item) => item.id === active.id);
+      const newIndex = items.findIndex((item) => item.id === over.id);
+
+      const newItems = arrayMove(items, oldIndex, newIndex);
+      setItems(newItems);
+
+      // Update orders in database
+      try {
+        const updatePromises = newItems.map((item, index) =>
+          updateCard(item.id, { order: index + 1 })
+        );
+        await Promise.all(updatePromises);
+        toast.success("Order updated successfully");
+      } catch (error) {
+        console.error("Error updating order:", error);
+        toast.error("Failed to update order");
+        // Revert on error
+        if (cards && cards.length > 0) {
+          const sortedCards = [...(cards as any[])].sort((a, b) => (a.order || 0) - (b.order || 0));
+          setItems(sortedCards);
+        }
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -118,27 +225,27 @@ export default function ExpertiseManager() {
                     Loading...
                   </TableCell>
                 </TableRow>
-              ) : cards && cards.length > 0 ? (
-                (cards as any[]).map((card: any) => (
-                  <TableRow key={card.id} className="hover:bg-white/5 border-white/5">
-                    <TableCell>
-                      <GripVertical className="w-4 h-4 text-muted-foreground cursor-move" />
-                    </TableCell>
-                    <TableCell className="font-medium">{card.title}</TableCell>
-                    <TableCell className="text-muted-foreground truncate max-w-xs">{card.description}</TableCell>
-                    <TableCell>{card.icon}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(card)}>
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDelete(card.id)} disabled={isDeleting}>
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+              ) : items && items.length > 0 ? (
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={items.map((item) => item.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {items.map((card: any) => (
+                      <SortableRow
+                        key={card.id}
+                        card={card}
+                        onEdit={openEdit}
+                        onDelete={handleDelete}
+                        isDeleting={isDeleting}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
               ) : (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">

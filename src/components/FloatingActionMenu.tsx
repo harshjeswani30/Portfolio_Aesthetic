@@ -61,7 +61,7 @@ const FloatingActionMenu = ({
               damping: 20,
               delay: 0.1,
             }}
-            className="absolute top-12 right-0 mt-2"
+            className="absolute top-12 right-0"
           >
             <div className="flex flex-col items-end gap-2">
               {options.map((option, index) => (

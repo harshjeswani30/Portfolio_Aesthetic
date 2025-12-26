@@ -83,6 +83,25 @@ function ThemeRouteGuard() {
     const currentPath = location.pathname;
     const prevPath = prevPathRef.current;
     
+    // Pages that should always be in dark mode
+    const darkModePages = ['/about', '/expertise', '/contact'];
+    const isDarkModePage = darkModePages.includes(currentPath);
+    
+    // Always check and enforce theme for dark mode pages, even if path hasn't changed
+    // This ensures theme is set correctly on initial load or when navigating to these pages
+    if (isDarkModePage) {
+      setTheme('dark');
+      // If coming from landing, save the landing theme
+      if (prevPath === '/') {
+        const currentTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
+        if (currentTheme === 'light') {
+          localStorage.setItem(landingThemeKey, 'light');
+        }
+      }
+      prevPathRef.current = currentPath;
+      return;
+    }
+    
     // Only run when route actually changes (not on initial mount if already on Landing)
     if (prevPath === currentPath) {
       return;
@@ -114,6 +133,9 @@ function ThemeRouteGuard() {
         // Force dark mode on all non-admin pages
         setTheme('dark');
       }
+    } else if (currentPath !== '/admin' && !currentPath.startsWith('/admin/') && !currentPath.startsWith('/auth')) {
+      // For any other non-admin page, ensure dark mode
+      setTheme('dark');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]); // Only run on route change

@@ -7,6 +7,12 @@ const isMobileDevice = () => {
   return window.innerWidth <= 768;
 };
 
+// Helper to check if device is mobile portrait
+const isMobilePortrait = () => {
+  if (typeof window === 'undefined') return false;
+  return window.innerWidth <= 768 && window.innerHeight > window.innerWidth;
+};
+
 interface GalleryItem {
   id: string;
   title: string;
@@ -327,17 +333,25 @@ const HorizontalGallery = forwardRef<HorizontalGalleryRef, HorizontalGalleryProp
                     className="gallery__item-tags"
                     style={{
                       position: 'absolute',
-                      bottom: '1rem',
-                      right: '1rem',
-                      fontSize: '1.5rem',
+                      bottom: isMobilePortrait() ? '0.5rem' : '1rem',
+                      left: isMobilePortrait() ? '0.5rem' : 'auto',
+                      right: isMobilePortrait() ? '0.5rem' : '1rem',
+                      transform: 'none',
+                      fontSize: isMobilePortrait() ? '0.75rem' : '1.5rem',
                       color: '#ffffff',
                       textShadow: '0 2px 4px rgba(0, 0, 0, 0.5)',
                       zIndex: 10,
                       margin: 0,
-                      padding: '0.5rem 1rem',
-                      background: 'rgba(0, 0, 0, 0.4)',
+                      padding: isMobilePortrait() ? '0.375rem 0.5rem' : '0.5rem 1rem',
+                      background: isMobilePortrait() ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.4)',
                       backdropFilter: 'blur(4px)',
                       borderRadius: '0.5rem',
+                      textAlign: isMobilePortrait() ? 'left' : 'left',
+                      whiteSpace: 'normal',
+                      wordWrap: 'break-word',
+                      overflowWrap: 'break-word',
+                      maxWidth: isMobilePortrait() ? 'calc(100% - 1rem)' : 'none',
+                      lineHeight: isMobilePortrait() ? '1.3' : '1.5',
                     }}
                   >
                     {item.title}

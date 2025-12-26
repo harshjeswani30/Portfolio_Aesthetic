@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { SocialLinksEditor, type SocialLink } from "@/components/admin/SocialLinksEditor";
 
 export default function PagesManager() {
   const [activeTab, setActiveTab] = useState("home");
@@ -246,14 +247,40 @@ function ContactEditor({ initialData, onSave }: { initialData: any, onSave: (dat
     tagline: "Harsh Jeswani",
     title: "Let's Connect",
     description: "Available for strategic consulting, creative collaborations, and meaningful conversations about design and innovation.",
-    email: "hello@example.com",
-    linkedin: "https://linkedin.com",
-    twitter: "https://twitter.com",
+    socialLinks: [] as SocialLink[],
     ...initialData
   });
 
   useEffect(() => {
-    if (initialData) setFormData({ ...formData, ...initialData });
+    if (initialData) {
+      let socialLinks = Array.isArray(initialData.socialLinks) ? initialData.socialLinks : [];
+      
+      // Handle backward compatibility: convert old 'email' or 'emails' fields to social links
+      if (initialData.email && !socialLinks.some((link: any) => link.platform === "gmail" || link.href?.startsWith("mailto:"))) {
+        socialLinks.push({
+          platform: "gmail",
+          href: `mailto:${initialData.email}`
+        });
+      } else if (initialData.emails && Array.isArray(initialData.emails) && initialData.emails.length > 0) {
+        // Convert emails array to social links if not already converted
+        initialData.emails.forEach((email: string) => {
+          if (!socialLinks.some((link: any) => link.href === `mailto:${email}`)) {
+            socialLinks.push({
+              platform: "gmail",
+              href: `mailto:${email}`
+            });
+          }
+        });
+      }
+      
+      setFormData({ 
+        tagline: "Harsh Jeswani",
+        title: "Let's Connect",
+        description: "Available for strategic consulting, creative collaborations, and meaningful conversations about design and innovation.",
+        ...initialData,
+        socialLinks: socialLinks // Override with converted social links
+      });
+    }
   }, [initialData]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -282,20 +309,13 @@ function ContactEditor({ initialData, onSave }: { initialData: any, onSave: (dat
           <Textarea name="description" value={formData.description} onChange={handleChange} className="h-24" />
         </div>
 
-        <div className="space-y-2">
-          <Label>Email Address</Label>
-          <Input name="email" value={formData.email} onChange={handleChange} />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>LinkedIn URL</Label>
-            <Input name="linkedin" value={formData.linkedin} onChange={handleChange} />
-          </div>
-          <div className="space-y-2">
-            <Label>Twitter URL</Label>
-            <Input name="twitter" value={formData.twitter} onChange={handleChange} />
-          </div>
+        <div className="space-y-4 pt-4 border-t border-border/50">
+          <SocialLinksEditor
+            socialLinks={formData.socialLinks || []}
+            onChange={(links) => setFormData({ ...formData, socialLinks: links })}
+            title="Social Links & Email Addresses"
+            description="Manage all contact links including email addresses and social media. Select 'Gmail' platform for email addresses or choose any other social platform."
+          />
         </div>
 
         <div className="flex justify-end">

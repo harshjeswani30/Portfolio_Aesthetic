@@ -8,6 +8,86 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Pencil, Trash2, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+// Sortable Row Component
+function SortableRow({ item, onEdit, onDelete, isDeleting }: { item: any; onEdit: (item: any) => void; onDelete: (id: string) => void; isDeleting: boolean }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <TableRow
+      ref={setNodeRef}
+      style={style}
+      className="hover:bg-white/5 border-white/5"
+    >
+      <TableCell>
+        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+          <GripVertical className="w-4 h-4 text-muted-foreground" />
+        </div>
+      </TableCell>
+      <TableCell className="font-medium">{item.number}</TableCell>
+      <TableCell className="font-medium">{item.title || "-"}</TableCell>
+      <TableCell>
+        <div className="w-16 h-10 rounded overflow-hidden border border-white/10">
+          <img 
+            src={item.image} 
+            alt={item.title || "Gallery item"}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.style.display = 'none';
+            }}
+          />
+        </div>
+      </TableCell>
+      <TableCell>{item.order}</TableCell>
+      <TableCell>
+        <span className={`px-2 py-1 rounded text-xs ${item.active ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}`}>
+          {item.active ? 'Active' : 'Inactive'}
+        </span>
+      </TableCell>
+      <TableCell className="text-right">
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" size="icon" onClick={() => onEdit(item)}>
+            <Pencil className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => onDelete(item.id)} disabled={isDeleting}>
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+}
 
 export default function GalleryManager() {
   const { data: items, isLoading } = useGalleryItems(true);
@@ -23,6 +103,51 @@ export default function GalleryManager() {
   const [startTextSecond, setStartTextSecond] = useState("");
   const [endTextFirst, setEndTextFirst] = useState("");
   const [endTextSecond, setEndTextSecond] = useState("");
+  const [itemsList, setItemsList] = useState<any[]>([]);
+
+  // Initialize items when gallery items load
+  useEffect(() => {
+    if (items && items.length > 0) {
+      const sortedItems = [...(items as any[])].sort((a, b) => (a.order || 0) - (b.order || 0));
+      setItemsList(sortedItems);
+    }
+  }, [items]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = itemsList.findIndex((item) => item.id === active.id);
+      const newIndex = itemsList.findIndex((item) => item.id === over.id);
+
+      const newItems = arrayMove(itemsList, oldIndex, newIndex);
+      setItemsList(newItems);
+
+      // Update orders in database
+      try {
+        const updatePromises = newItems.map((item, index) =>
+          updateItem(item.id, { order: index + 1 })
+        );
+        await Promise.all(updatePromises);
+        toast.success("Order updated successfully");
+      } catch (error) {
+        console.error("Error updating order:", error);
+        toast.error("Failed to update order");
+        // Revert on error
+        if (items && items.length > 0) {
+          const sortedItems = [...(items as any[])].sort((a, b) => (a.order || 0) - (b.order || 0));
+          setItemsList(sortedItems);
+        }
+      }
+    }
+  };
 
   // Initialize text settings when component mounts or data changes
   useEffect(() => {
@@ -140,45 +265,27 @@ export default function GalleryManager() {
                     Loading...
                   </TableCell>
                 </TableRow>
-              ) : items && items.length > 0 ? (
-                (items as any[]).map((item: any) => (
-                  <TableRow key={item.id} className="hover:bg-white/5 border-white/5">
-                    <TableCell>
-                      <GripVertical className="w-4 h-4 text-muted-foreground cursor-move" />
-                    </TableCell>
-                    <TableCell className="font-medium">{item.number}</TableCell>
-                    <TableCell className="font-medium">{item.title || "-"}</TableCell>
-                    <TableCell>
-                      <div className="w-16 h-10 rounded overflow-hidden border border-white/10">
-                        <img 
-                          src={item.image} 
-                          alt={item.title || "Gallery item"}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                          }}
-                        />
-                      </div>
-                    </TableCell>
-                    <TableCell>{item.order}</TableCell>
-                    <TableCell>
-                      <span className={`px-2 py-1 rounded text-xs ${item.active ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}`}>
-                        {item.active ? 'Active' : 'Inactive'}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(item)}>
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDelete(item.id)} disabled={isDeleting}>
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+              ) : itemsList && itemsList.length > 0 ? (
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={itemsList.map((item) => item.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {itemsList.map((item: any) => (
+                      <SortableRow
+                        key={item.id}
+                        item={item}
+                        onEdit={openEdit}
+                        onDelete={handleDelete}
+                        isDeleting={isDeleting}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
               ) : (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">

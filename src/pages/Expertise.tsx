@@ -13,6 +13,7 @@ import { useExpertiseCards } from "@/hooks/use-cms";
 import PillNav from "@/components/PillNav";
 import FloatingActionMenu from "@/components/FloatingActionMenu";
 import { User, Briefcase, Mail } from "lucide-react";
+import { useTheme } from "@/components/providers/ThemeProvider";
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
@@ -25,6 +26,7 @@ const getIcon = (name: string) => {
 const Expertise = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { setTheme } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
   const subtitleRef = useRef<HTMLSpanElement>(null);
@@ -33,6 +35,11 @@ const Expertise = () => {
   const cardsRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
   const pillNavRef = useRef<HTMLDivElement>(null);
+
+  // Force dark mode on Expertise page
+  useEffect(() => {
+    setTheme('dark');
+  }, [setTheme]);
 
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [selectedCard, setSelectedCard] = useState<any | null>(null);

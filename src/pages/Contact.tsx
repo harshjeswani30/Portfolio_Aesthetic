@@ -1,12 +1,14 @@
 import { useRef, useEffect } from "react";
-import { Mail, Linkedin, Twitter, ArrowUpRight, User, Briefcase } from "lucide-react";
+import { Mail, Linkedin, Twitter, ArrowUpRight, User, Briefcase, Github, Instagram, Facebook, Youtube, MessageCircle, Send, MessageSquare, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Link, useLocation, useNavigate } from "react-router";
 import { usePage } from "@/hooks/use-cms";
+import { getPlatformLabel } from "@/lib/social-platforms";
 import PillNav from "@/components/PillNav";
 import FloatingActionMenu from "@/components/FloatingActionMenu";
 import gsap from "gsap";
+import { useTheme } from "@/components/providers/ThemeProvider";
 
 const fadeInUp = {
   initial: { opacity: 0, y: 30 },
@@ -23,9 +25,15 @@ const lineReveal = {
 const Contact = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { setTheme } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const pillNavRef = useRef<HTMLDivElement>(null);
   const { data: pageData, isLoading } = usePage("contact");
+
+  // Force dark mode on Contact page
+  useEffect(() => {
+    setTheme('dark');
+  }, [setTheme]);
   
   // Only use CMS content when loaded, prevent default text flash
   const content = (pageData as any)?.content ? (pageData as any).content : (
@@ -34,40 +42,92 @@ const Contact = () => {
           tagline: "",
           title: "",
           description: "",
-          email: "",
-          linkedin: "",
-          twitter: ""
+          socialLinks: [] as any[],
         }
       : {
           tagline: "Harsh Jeswani",
           title: "Let's Connect",
           description: "Available for strategic consulting, creative collaborations, and meaningful conversations about design and innovation.",
-          email: "hello@example.com",
-          linkedin: "https://linkedin.com",
-          twitter: "https://twitter.com"
+          socialLinks: [] as any[],
         }
   );
 
-  const socialLinks = [
-    {
-      icon: Mail,
-      label: "Email",
-      href: `mailto:${content.email}`,
-      value: content.email,
-    },
-    {
-      icon: Linkedin,
-      label: "LinkedIn",
-      href: content.linkedin,
-      value: "LinkedIn Profile",
-    },
-    {
-      icon: Twitter,
-      label: "Twitter",
-      href: content.twitter,
-      value: "Twitter Profile",
-    },
-  ];
+  // Map platform names to icons (same as Landing.tsx)
+  const getIcon = (platform: string) => {
+    const normalized = platform.toLowerCase();
+    
+    if (normalized === "gmail" || normalized === "email" || normalized.includes("mail")) {
+      return Mail;
+    }
+    if (normalized === "linkedin" || normalized.includes("linkedin")) {
+      return Linkedin;
+    }
+    if (normalized === "twitter" || normalized === "x" || normalized.includes("twitter")) {
+      return Twitter;
+    }
+    if (normalized === "instagram" || normalized.includes("instagram")) {
+      return Instagram;
+    }
+    if (normalized === "github" || normalized.includes("github")) {
+      return Github;
+    }
+    if (normalized === "facebook" || normalized.includes("facebook")) {
+      return Facebook;
+    }
+    if (normalized === "youtube" || normalized.includes("youtube")) {
+      return Youtube;
+    }
+    if (normalized === "discord" || normalized.includes("discord")) {
+      return MessageCircle;
+    }
+    if (normalized === "telegram" || normalized.includes("telegram")) {
+      return Send;
+    }
+    if (normalized === "whatsapp" || normalized.includes("whatsapp")) {
+      return MessageSquare;
+    }
+    return Share2;
+  };
+
+  // Get social links from page content only (independent from footer)
+  // Handle backward compatibility: convert old 'email' or 'emails' fields
+  let pageSocialLinks = content.socialLinks && Array.isArray(content.socialLinks) && content.socialLinks.length > 0
+    ? content.socialLinks
+    : [];
+
+  // Backward compatibility: if old email field exists, add it as a social link
+  if (content.email && !pageSocialLinks.some((link: any) => link.platform === "gmail" || link.href?.startsWith("mailto:"))) {
+    pageSocialLinks = [...pageSocialLinks, {
+      platform: "gmail",
+      href: `mailto:${content.email}`
+    }];
+  } else if (content.emails && Array.isArray(content.emails) && content.emails.length > 0) {
+    // Convert emails array to social links
+    content.emails.forEach((email: string) => {
+      if (!pageSocialLinks.some((link: any) => link.href === `mailto:${email}`)) {
+        pageSocialLinks = [...pageSocialLinks, {
+          platform: "gmail",
+          href: `mailto:${email}`
+        }];
+      }
+    });
+  }
+
+  const allLinks = pageSocialLinks.length > 0
+    ? pageSocialLinks.map((link: any) => {
+        const IconComponent = getIcon(link.platform);
+        const platformLabel = getPlatformLabel(link.platform);
+        const isEmail = link.platform === "gmail" || link.href.startsWith("mailto:");
+        return {
+          icon: IconComponent,
+          label: platformLabel,
+          href: link.href,
+          value: isEmail 
+            ? link.href.replace("mailto:", "") // Show email address for email links
+            : link.href, // Show URL for social links
+        };
+      })
+    : [];
 
   // Animate pill navbar from top on mount (Desktop only)
   useEffect(() => {
@@ -196,7 +256,7 @@ const Contact = () => {
             transition={{ duration: 0.8, delay: 0.6 }}
             className="grid md:grid-cols-3 gap-8 mb-16"
           >
-            {socialLinks.map((link, index) => (
+            {allLinks.map((link, index) => (
               <motion.a
                 key={link.label}
                 href={link.href}
@@ -211,12 +271,9 @@ const Contact = () => {
                   <link.icon className="w-6 h-6 text-primary" />
                   <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 group-hover:-translate-y-1 transition-all duration-300" />
                 </div>
-                <h3 className="text-lg font-display text-foreground mb-2">
+                <h3 className="text-lg font-display text-foreground">
                   {link.label}
                 </h3>
-                <p className="text-sm text-muted-foreground font-body truncate">
-                  {link.value}
-                </p>
                 
                 {/* Hover Glow Effect */}
                 <div className="absolute inset-0 rounded-lg bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
@@ -239,16 +296,24 @@ const Contact = () => {
             <p className="text-muted-foreground font-body mb-8 text-lg">
               Prefer a direct approach?
             </p>
-            <a href={`mailto:${content.email}`}>
-              <Button
-                variant="cta"
-                size="lg"
-                className="group"
-              >
-                Send an Email
-                <ArrowUpRight className="w-4 h-4 ml-2 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-              </Button>
-            </a>
+            {(() => {
+              // Find first email link (Gmail platform or mailto: href)
+              const firstEmailLink = allLinks.find((link) => 
+                link.href.startsWith("mailto:") || link.icon === Mail
+              );
+              return firstEmailLink ? (
+                <a href={firstEmailLink.href}>
+                  <Button
+                    variant="cta"
+                    size="lg"
+                    className="group"
+                  >
+                    Send an Email
+                    <ArrowUpRight className="w-4 h-4 ml-2 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                  </Button>
+                </a>
+              ) : null;
+            })()}
           </motion.div>
           {/* Footer Note */}
           <motion.div

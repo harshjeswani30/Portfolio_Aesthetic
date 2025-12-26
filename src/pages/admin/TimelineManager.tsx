@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTimeline, useCreateTimelineEntry, useUpdateTimelineEntry, useDeleteTimelineEntry } from "@/hooks/use-cms";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,8 +6,72 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, GripVertical } from "lucide-react";
 import { toast } from "sonner";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+// Sortable Row Component
+function SortableRow({ entry, onEdit, onDelete, isDeleting }: { entry: any; onEdit: (entry: any) => void; onDelete: (id: string) => void; isDeleting: boolean }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: entry.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <TableRow
+      ref={setNodeRef}
+      style={style}
+      className="hover:bg-white/5 border-white/5"
+    >
+      <TableCell>
+        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+          <GripVertical className="w-4 h-4 text-muted-foreground" />
+        </div>
+      </TableCell>
+      <TableCell className="font-bold">{entry.year}</TableCell>
+      <TableCell>{entry.title}</TableCell>
+      <TableCell className="text-muted-foreground truncate max-w-xs">
+        {typeof entry.content === 'string' ? entry.content : 'Complex content'}
+      </TableCell>
+      <TableCell className="text-right">
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" size="icon" onClick={() => onEdit(entry)}>
+            <Pencil className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="text-destructive" onClick={() => onDelete(entry.id)} disabled={isDeleting}>
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+}
 
 export default function TimelineManager() {
   const { data: entries, isLoading } = useTimeline();
@@ -17,6 +81,51 @@ export default function TimelineManager() {
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<any>(null);
+  const [entriesList, setEntriesList] = useState<any[]>([]);
+
+  // Initialize entries when timeline loads
+  useEffect(() => {
+    if (entries && entries.length > 0) {
+      const sortedEntries = [...(entries as any[])].sort((a, b) => (a.order || 0) - (b.order || 0));
+      setEntriesList(sortedEntries);
+    }
+  }, [entries]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = entriesList.findIndex((entry) => entry.id === active.id);
+      const newIndex = entriesList.findIndex((entry) => entry.id === over.id);
+
+      const newEntries = arrayMove(entriesList, oldIndex, newIndex);
+      setEntriesList(newEntries);
+
+      // Update orders in database
+      try {
+        const updatePromises = newEntries.map((entry, index) =>
+          updateEntry(entry.id, { order: index + 1 })
+        );
+        await Promise.all(updatePromises);
+        toast.success("Order updated successfully");
+      } catch (error) {
+        console.error("Error updating order:", error);
+        toast.error("Failed to update order");
+        // Revert on error
+        if (entries && entries.length > 0) {
+          const sortedEntries = [...(entries as any[])].sort((a, b) => (a.order || 0) - (b.order || 0));
+          setEntriesList(sortedEntries);
+        }
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -83,6 +192,7 @@ export default function TimelineManager() {
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-white/5 border-white/5">
+                <TableHead className="w-[50px]"></TableHead>
                 <TableHead>Year</TableHead>
                 <TableHead>Title</TableHead>
                 <TableHead>Content Preview</TableHead>
@@ -92,33 +202,34 @@ export default function TimelineManager() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground">
                     Loading...
                   </TableCell>
                 </TableRow>
-              ) : entries && entries.length > 0 ? (
-                (entries as any[]).map((entry: any) => (
-                  <TableRow key={entry.id} className="hover:bg-white/5 border-white/5">
-                    <TableCell className="font-bold">{entry.year}</TableCell>
-                    <TableCell>{entry.title}</TableCell>
-                    <TableCell className="text-muted-foreground truncate max-w-xs">
-                      {typeof entry.content === 'string' ? entry.content : 'Complex content'}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => { setEditingEntry(entry); setIsDialogOpen(true); }}>
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(entry.id)} disabled={isDeleting}>
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+              ) : entriesList && entriesList.length > 0 ? (
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={entriesList.map((entry) => entry.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {entriesList.map((entry: any) => (
+                      <SortableRow
+                        key={entry.id}
+                        entry={entry}
+                        onEdit={(entry) => { setEditingEntry(entry); setIsDialogOpen(true); }}
+                        onDelete={handleDelete}
+                        isDeleting={isDeleting}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
               ) : (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground">
                     No entries yet. Create your first timeline entry!
                   </TableCell>
                 </TableRow>
