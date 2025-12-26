@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router";
 import DecayCard from "@/components/DecayCard";
 import { Suspense, useRef, useState, useEffect, type RefObject } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { convertDriveUrlToDirectImageUrl } from "@/lib/image-utils";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
@@ -31,11 +32,14 @@ const About = () => {
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
   const [isMobilePortrait, setIsMobilePortrait] = useState(false);
   const [maskingComplete, setMaskingComplete] = useState(false);
+  const [introVisible, setIntroVisible] = useState(false);
   const [overlayDismissed, setOverlayDismissed] = useState(false);
 
   // Check for mobile landscape and portrait view
   useEffect(() => {
     const checkMobileView = () => {
+      if (typeof window === 'undefined') return;
+      
       const isMobileDevice = window.innerWidth <= 768;
       const isLandscape = window.innerHeight < window.innerWidth;
       const isPortrait = window.innerHeight >= window.innerWidth;
@@ -43,11 +47,17 @@ const About = () => {
       setIsMobilePortrait(isMobileDevice && isPortrait);
     };
 
+    // Check immediately
     checkMobileView();
+    
+    // Check after a small delay to ensure window is ready
+    const timeoutId = setTimeout(checkMobileView, 100);
+    
     window.addEventListener('resize', checkMobileView);
     window.addEventListener('orientationchange', checkMobileView);
 
     return () => {
+      clearTimeout(timeoutId);
       window.removeEventListener('resize', checkMobileView);
       window.removeEventListener('orientationchange', checkMobileView);
     };
@@ -125,10 +135,17 @@ const About = () => {
   }));
 
   useGSAP(() => {
-    if (!wrapperRef.current || !imageRef.current || !profileCardRef.current || !textContentRef.current || !scrollSpacerRef.current || !timelineRef.current) return;
+    if (!wrapperRef.current || !imageRef.current || !textContentRef.current || !scrollSpacerRef.current || !timelineRef.current) return;
 
     // For mobile portrait, create a simple masking animation and track completion
     if (isMobilePortrait) {
+      // Kill any existing ScrollTriggers for this trigger
+      ScrollTrigger.getAll().forEach(st => {
+        if (st.trigger === scrollSpacerRef.current || st.vars?.trigger === scrollSpacerRef.current) {
+          st.kill();
+        }
+      });
+
       // Create a simple timeline for masking animation
       const maskTl = gsap.timeline({
         scrollTrigger: {
@@ -136,6 +153,7 @@ const About = () => {
           start: "top top",
           end: "bottom bottom",
           scrub: 2,
+          invalidateOnRefresh: true,
         }
       });
 
@@ -150,11 +168,49 @@ const About = () => {
         willChange: "transform, opacity"
       });
 
+      // Animate text elements to slide up smoothly (mobile portrait)
+      const textElements = gsap.utils.toArray<HTMLElement>(".animate-text");
+      if (textElements.length > 0) {
+        // Calculate when the last element finishes animating
+        const totalStaggerTime = (textElements.length - 1) * 0.15;
+        const totalAnimationTime = 1 + totalStaggerTime;
+        
+        maskTl.fromTo(
+          textElements,
+          { y: 80, opacity: 0, autoAlpha: 0 },
+          {
+            y: 0,
+            opacity: 1,
+            autoAlpha: 1,
+            duration: 1.2,
+            stagger: 0.15,
+            ease: "power3.out",
+            willChange: "transform, opacity"
+          },
+          "-=0.5" // Start slightly before masking completes
+        );
+        
+        // Set intro visible after all text animations complete, with smooth delay
+        maskTl.call(() => {
+          setTimeout(() => {
+            setIntroVisible(true);
+          }, 300);
+        }, [], `+=${totalAnimationTime - 1}`);
+      } else {
+        // If no text elements, set intro visible after masking starts
+        maskTl.call(() => {
+          setTimeout(() => {
+            setIntroVisible(true);
+          }, 300);
+        }, [], "-=0.5");
+      }
+
       // Track when masking animation completes (at 50% progress) - works in reverse too
-      ScrollTrigger.create({
+      const progressTrigger = ScrollTrigger.create({
         trigger: scrollSpacerRef.current,
         start: "top top",
         end: "+=50%",
+        invalidateOnRefresh: true,
         onUpdate: (self) => {
           if (self.progress >= 0.5) {
             setMaskingComplete(true);
@@ -171,10 +227,41 @@ const About = () => {
         onLeaveBack: () => {
           setMaskingComplete(false);
           setStartEncryption(false);
+          setIntroVisible(false);
         }
       });
 
-      return; // Exit early for mobile portrait
+      // Hold phase after masking
+      maskTl.to({}, { duration: 1.5 });
+
+      // Fade out wrapper and fade in timeline (mobile portrait)
+      maskTl.to(wrapperRef.current, {
+        opacity: 0,
+        autoAlpha: 0,
+        duration: 1,
+        ease: "power2.inOut",
+        pointerEvents: "none",
+        willChange: "opacity"
+      });
+
+      // Fade in timeline
+      maskTl.fromTo(
+        timelineRef.current,
+        { opacity: 0, y: 100 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 1,
+          ease: "power2.out",
+          willChange: "transform, opacity"
+        },
+        "<" // Start at the same time as wrapper fade out
+      );
+
+      return () => {
+        // Cleanup on unmount or dependency change
+        if (progressTrigger) progressTrigger.kill();
+      };
     }
 
     // Set profile card to visible and fixed position in mobile landscape
@@ -308,7 +395,7 @@ const About = () => {
       "<" // Start at the same time as wrapper fade out
     );
 
-  }, { scope: wrapperRef, dependencies: [isMobileLandscape] });
+  }, { scope: wrapperRef, dependencies: [isMobileLandscape, isMobilePortrait] });
 
   // Ensure mobile landscape scale persists even if timeline tries to interfere
   useEffect(() => {
@@ -480,7 +567,13 @@ const About = () => {
         {/* Content Section - Full Screen Introduction with Card */}
         <div ref={contentRef} className="content relative w-full h-full z-10 overflow-visible">
           {/* Main Content - Full Width Section with Card */}
-          <div ref={textContentRef} className="relative z-20 w-full h-full flex flex-col justify-center px-8 md:px-20 bg-background/80 backdrop-blur-sm overflow-visible pt-32 md:pt-0">
+          <div 
+            ref={textContentRef} 
+            className="relative z-20 w-full h-full flex flex-col justify-center px-8 md:px-20 bg-background/80 backdrop-blur-sm overflow-visible"
+            style={{
+              paddingTop: isMobilePortrait ? '8rem' : undefined,
+            }}
+          >
             {/* Profile Card - Positioned on Right Side (Desktop & Mobile Landscape) */}
             <div ref={profileCardRef} className={`absolute right-0 top-0 bottom-0 z-[25] flex items-center justify-center will-change-[transform,opacity] ${isMobilePortrait ? 'hidden' : isMobileLandscape ? 'opacity-100 visible pr-0 translate-x-[20px]' : 'opacity-0 invisible pr-8 md:pr-20 translate-x-[-40px] md:translate-x-[-60px]'} w-full md:w-1/2 h-full`}>
               <Suspense fallback={null}>
@@ -497,7 +590,7 @@ const About = () => {
                   } : undefined}
                 >
                   <DecayCard 
-                    image={profileCardSettings?.cardImageUrl || 'https://picsum.photos/300/400?grayscale'}
+                    image={profileCardSettings?.cardImageUrl ? convertDriveUrlToDirectImageUrl(profileCardSettings.cardImageUrl) : 'https://picsum.photos/300/400?grayscale'}
                     width={isMobileLandscape ? 200 : 300}
                     height={isMobileLandscape ? 267 : 400}
                   />
@@ -540,12 +633,29 @@ const About = () => {
                   </div>
 
                   {/* Profile Card - Below Info Cards (Mobile Portrait Only) */}
-                  {isMobilePortrait && maskingComplete && (
-                    <div className="flex justify-end items-center mb-8 w-full pr-6" style={{ transform: 'translateY(-24px) translateX(8px) !important', willChange: 'auto' }}>
+                  {isMobilePortrait && (
+                    <div 
+                      className="flex justify-end items-center mb-8 w-full pr-6"
+                      style={{ 
+                        transform: introVisible 
+                          ? 'translateY(-24px) translateX(8px) scale(1)' 
+                          : 'translateY(40px) translateX(8px) scale(0.95)',
+                        willChange: 'transform, opacity',
+                        opacity: introVisible ? 1 : 0,
+                        transition: 'opacity 0.6s ease-out, transform 0.8s cubic-bezier(0.22, 1, 0.36, 1)',
+                        pointerEvents: introVisible ? 'auto' : 'none',
+                      }}
+                    >
                       <Suspense fallback={null}>
-                        <div className="relative w-full max-w-[380px]" style={{ transform: 'none !important', willChange: 'auto' }}>
+                        <div 
+                          className="relative w-full max-w-[380px]" 
+                          style={{ 
+                            transform: 'none',
+                            willChange: 'auto',
+                          }}
+                        >
                           <DecayCard 
-                            image={profileCardSettings?.cardImageUrl || 'https://picsum.photos/300/400?grayscale'}
+                            image={profileCardSettings?.cardImageUrl ? convertDriveUrlToDirectImageUrl(profileCardSettings.cardImageUrl) : 'https://picsum.photos/300/400?grayscale'}
                             width={380}
                             height={507}
                           />

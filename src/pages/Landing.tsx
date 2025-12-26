@@ -6,7 +6,8 @@ import { Footer } from "@/components/ui/footer";
 import { Github, Instagram, Linkedin, Mail, Twitter, MousePointer2, User, Briefcase } from "lucide-react";
 import { useNavigate, Link, useLocation } from "react-router";
 import PillNav from "@/components/PillNav";
-import { usePage, useSiteSettings, useFooterSettings, useGalleryItems, useGalleryTextSettings } from "@/hooks/use-cms";
+import { usePage, useSiteSettings, useFooterSettings, useGalleryItems, useGalleryTextSettings, useLogoSettings } from "@/hooks/use-cms";
+import { convertDriveUrlToDirectImageUrl } from "@/lib/image-utils";
 import HorizontalGallery, { HorizontalGalleryRef } from "@/components/HorizontalGallery";
 import { clamp, map } from "@/utils/math";
 import FloatingActionMenu from "@/components/FloatingActionMenu";
@@ -44,6 +45,7 @@ function FooterContent({ footerData }: { footerData: any }) {
   };
 
   const footer = footerData || defaultFooter;
+  const { data: logoSettings } = useLogoSettings();
 
   // Map platform names to icons
   const getIcon = (platform: string) => {
@@ -63,9 +65,30 @@ function FooterContent({ footerData }: { footerData: any }) {
   return (
     <Footer
       logo={
-        <div className="h-10 w-10 bg-primary rounded-lg flex items-center justify-center text-white font-bold">
-          {footer.logoText || "CS"}
-        </div>
+        logoSettings?.logoUrl ? (
+          <div className="h-10 w-10 rounded-lg flex items-center justify-center overflow-hidden bg-primary/10 relative">
+            <img
+              src={convertDriveUrlToDirectImageUrl(logoSettings.logoUrl)}
+              alt="Logo"
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                if (target.parentElement) {
+                  const fallback = target.parentElement?.querySelector('.logo-text-fallback') as HTMLElement;
+                  if (fallback) fallback.style.display = 'flex';
+                }
+              }}
+            />
+            <div className="logo-text-fallback hidden h-full w-full bg-primary rounded-lg items-center justify-center text-white font-bold text-sm absolute inset-0">
+              {logoSettings?.logoText || footer.logoText || "CS"}
+            </div>
+          </div>
+        ) : (
+          <div className="h-10 w-10 bg-primary rounded-lg flex items-center justify-center text-white font-bold">
+            {logoSettings?.logoText || footer.logoText || "CS"}
+          </div>
+        )
       }
       brandName={footer.brandName || "Cinematic Strategy"}
       socialLinks={footer.socialLinks?.map((link: any) => ({

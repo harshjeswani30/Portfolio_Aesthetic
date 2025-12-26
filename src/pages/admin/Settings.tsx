@@ -7,7 +7,9 @@ import { toast } from "sonner";
 import { User, Mail, Lock, Eye, EyeOff, Image as ImageIcon } from "lucide-react";
 import { useAuth } from "@/components/providers/SupabaseAuthProvider";
 import { supabase } from "@/lib/supabase";
-import { useProfileCardSettings, useUpdateProfileCardSettings } from "@/hooks/use-cms";
+import { useProfileCardSettings, useUpdateProfileCardSettings, useLogoSettings, useUpdateLogoSettings } from "@/hooks/use-cms";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { convertDriveUrlToDirectImageUrl } from "@/lib/image-utils";
 
 export default function Settings() {
   const { user, profile, signOut } = useAuth();
@@ -23,12 +25,19 @@ export default function Settings() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [activeTab, setActiveTab] = useState<"profile" | "password" | "card">("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "password" | "card" | "logo">("profile");
   
   // Profile card settings
   const { data: profileCardSettings, isLoading: loadingCardSettings } = useProfileCardSettings();
   const { mutate: updateProfileCard, isLoading: isUpdatingCard } = useUpdateProfileCardSettings();
   const [cardImageUrl, setCardImageUrl] = useState("");
+  
+  // Logo settings
+  const { data: logoSettings, isLoading: loadingLogoSettings } = useLogoSettings();
+  const { mutate: updateLogo, isLoading: isUpdatingLogo } = useUpdateLogoSettings();
+  const [logoUrl, setLogoUrl] = useState("");
+  const [logoText, setLogoText] = useState("CS");
+  const [faviconUrl, setFaviconUrl] = useState("");
   
   // Initialize form when settings load
   useEffect(() => {
@@ -36,6 +45,15 @@ export default function Settings() {
       setCardImageUrl(profileCardSettings.cardImageUrl || "");
     }
   }, [profileCardSettings]);
+
+  // Initialize logo form when settings load
+  useEffect(() => {
+    if (logoSettings) {
+      setLogoUrl(logoSettings.logoUrl || "");
+      setLogoText(logoSettings.logoText || "CS");
+      setFaviconUrl(logoSettings.faviconUrl || "");
+    }
+  }, [logoSettings]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -185,6 +203,20 @@ export default function Settings() {
     }
   };
 
+  const handleUpdateLogo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await updateLogo({
+        logoUrl: logoUrl.trim(),
+        logoText: logoText.trim() || "CS",
+        faviconUrl: faviconUrl.trim()
+      });
+      toast.success("Logo settings updated successfully!");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update logo settings");
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div>
@@ -192,7 +224,15 @@ export default function Settings() {
         <p className="text-muted-foreground">Manage your admin account credentials and security.</p>
       </div>
 
-      <div className="max-w-2xl space-y-6">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+        <TabsList className="bg-card/50 border border-white/5 mb-6">
+          <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="password">Password</TabsTrigger>
+          <TabsTrigger value="card">Profile Card</TabsTrigger>
+          <TabsTrigger value="logo">Logo</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="profile" className="max-w-2xl">
         {/* Profile Settings */}
         <Card className="bg-card/50 border-white/5">
           <CardHeader>
@@ -250,6 +290,9 @@ export default function Settings() {
           </CardContent>
         </Card>
 
+        </TabsContent>
+
+        <TabsContent value="password" className="max-w-2xl">
         {/* Password Settings */}
         <Card className="bg-card/50 border-white/5">
           <CardHeader>
@@ -337,6 +380,9 @@ export default function Settings() {
           </CardContent>
         </Card>
 
+        </TabsContent>
+
+        <TabsContent value="card" className="max-w-2xl">
         {/* Profile Card Image Settings */}
         <Card className="bg-card/50 border-white/5">
           <CardHeader>
@@ -365,7 +411,7 @@ export default function Settings() {
                 {cardImageUrl && (
                   <div className="mt-2 p-2 border border-white/10 rounded-lg">
                     <img 
-                      src={cardImageUrl} 
+                      src={convertDriveUrlToDirectImageUrl(cardImageUrl)} 
                       alt="Card preview" 
                       className="max-w-full h-32 object-contain rounded"
                       onError={(e) => {
@@ -390,7 +436,111 @@ export default function Settings() {
             </form>
           </CardContent>
         </Card>
-      </div>
+        </TabsContent>
+
+        <TabsContent value="logo" className="max-w-2xl">
+        {/* Logo Settings */}
+        <Card className="bg-card/50 border-white/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ImageIcon className="w-5 h-5" />
+              Logo Settings
+            </CardTitle>
+            <CardDescription>
+              Manage your website logo, logo text fallback, and favicon. These appear throughout the site including footer, admin panel, and auth page.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleUpdateLogo} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="logoUrl">Logo Image URL</Label>
+                <Input 
+                  id="logoUrl"
+                  type="url"
+                  value={logoUrl}
+                  onChange={(e) => setLogoUrl(e.target.value)}
+                  placeholder="https://example.com/logo.svg"
+                />
+                <p className="text-xs text-muted-foreground">
+                  URL to your logo image (SVG, PNG, or JPG). This will be used in the footer, admin panel, and auth page. If the image fails to load, the logo text will be used as a fallback. Google Drive sharing URLs are automatically converted to direct image URLs.
+                </p>
+                {logoUrl && (
+                  <div className="mt-2 p-4 border border-white/10 rounded-lg bg-background/50">
+                    <p className="text-xs text-muted-foreground mb-2">Preview:</p>
+                    <div className="flex items-center gap-4">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden">
+                        <img 
+                          src={convertDriveUrlToDirectImageUrl(logoUrl)} 
+                          alt="Logo preview" 
+                          className="w-full h-full object-contain"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                            const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement;
+                            if (fallback) fallback.style.display = 'flex';
+                          }}
+                        />
+                        <div className="hidden h-full w-full bg-primary rounded-lg items-center justify-center text-white font-bold text-sm">
+                          {logoText || "CS"}
+                        </div>
+                      </div>
+                      <span className="text-sm text-muted-foreground">Logo size: 40x40px</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="logoText">Logo Text (Fallback)</Label>
+                <Input 
+                  id="logoText"
+                  type="text"
+                  value={logoText}
+                  onChange={(e) => setLogoText(e.target.value)}
+                  placeholder="CS"
+                  maxLength={10}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Text to display if the logo image fails to load or is not provided. This appears in a colored box as a fallback (e.g., "CS", "Logo").
+                </p>
+                {logoText && (
+                  <div className="mt-2 p-4 border border-white/10 rounded-lg bg-background/50">
+                    <p className="text-xs text-muted-foreground mb-2">Text Fallback Preview:</p>
+                    <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center text-white font-bold">
+                      {logoText}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="faviconUrl">Favicon URL (Optional)</Label>
+                <Input 
+                  id="faviconUrl"
+                  type="url"
+                  value={faviconUrl}
+                  onChange={(e) => setFaviconUrl(e.target.value)}
+                  placeholder="https://example.com/favicon.ico"
+                />
+                <p className="text-xs text-muted-foreground">
+                  URL to your favicon (the small icon shown in browser tabs). Common formats: .ico, .png, .svg. Leave empty to use the default.
+                </p>
+              </div>
+
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+                <p className="text-sm text-blue-200">
+                  <ImageIcon className="w-4 h-4 inline mr-2" />
+                  <strong>Where logos appear:</strong> Footer (landing page), Admin Panel header, Auth/Login page, Logo Dropdown menu. If no logo URL is provided, the logo text will be displayed in a colored box.
+                </p>
+              </div>
+
+              <Button type="submit" className="w-full" disabled={isUpdatingLogo || loadingLogoSettings}>
+                {isUpdatingLogo ? "Updating..." : loadingLogoSettings ? "Loading..." : "Update Logo Settings"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

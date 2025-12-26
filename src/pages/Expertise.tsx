@@ -37,26 +37,37 @@ const Expertise = () => {
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [selectedCard, setSelectedCard] = useState<any | null>(null);
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
+  const [isMobilePortrait, setIsMobilePortrait] = useState(false);
   const [cardsAnimatedIn, setCardsAnimatedIn] = useState(false);
+  const touchStartRef = useRef<number>(0);
+  const isOpeningRef = useRef<boolean>(false);
 
   // Fetch data from Supabase
   const { data: expertiseAreas } = useExpertiseCards();
 
-  // Check for mobile landscape view
+  // Check for mobile landscape and portrait view
   useEffect(() => {
-    const checkMobileLandscape = () => {
+    const checkMobileView = () => {
+      if (typeof window === 'undefined') return;
+      
       const isMobileDevice = window.innerWidth <= 768;
       const isLandscape = window.innerHeight < window.innerWidth;
+      const isPortrait = window.innerHeight >= window.innerWidth;
       setIsMobileLandscape(isMobileDevice && isLandscape);
+      setIsMobilePortrait(isMobileDevice && isPortrait);
     };
 
-    checkMobileLandscape();
-    window.addEventListener('resize', checkMobileLandscape);
-    window.addEventListener('orientationchange', checkMobileLandscape);
+    checkMobileView();
+    // Add delay to ensure window dimensions are ready
+    const timeoutId = setTimeout(checkMobileView, 100);
+    
+    window.addEventListener('resize', checkMobileView);
+    window.addEventListener('orientationchange', checkMobileView);
 
     return () => {
-      window.removeEventListener('resize', checkMobileLandscape);
-      window.removeEventListener('orientationchange', checkMobileLandscape);
+      clearTimeout(timeoutId);
+      window.removeEventListener('resize', checkMobileView);
+      window.removeEventListener('orientationchange', checkMobileView);
     };
   }, []);
 
@@ -382,22 +393,66 @@ const Expertise = () => {
                     transform: 'translateY(60px) scale(0.9)',
                     zIndex: hoveredCard === cardId ? 9999 : 'auto'
                   }}
-                  onMouseEnter={() => !isMobileLandscape && setHoveredCard(cardId)}
-                  onMouseLeave={() => !isMobileLandscape && setHoveredCard(null)}
-                  onClick={() => setSelectedCard(area)}
+                  onMouseEnter={() => {
+                    // Only hover on desktop (not mobile at all)
+                    if (!isMobileLandscape && !isMobilePortrait) {
+                      setHoveredCard(cardId);
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    if (!isMobileLandscape && !isMobilePortrait) {
+                      setHoveredCard(null);
+                    }
+                  }}
+                  onTouchStart={(e) => {
+                    // Track touch start time
+                    touchStartRef.current = Date.now();
+                  }}
+                  onClick={(e) => {
+                    // Prevent double opening on mobile - if touch was recent, ignore click
+                    const timeSinceTouch = Date.now() - touchStartRef.current;
+                    if (timeSinceTouch < 500 || isOpeningRef.current) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      return;
+                    }
+                    
+                    e.stopPropagation();
+                    e.preventDefault();
+                    isOpeningRef.current = true;
+                    setSelectedCard(area);
+                    setTimeout(() => {
+                      isOpeningRef.current = false;
+                    }, 300);
+                  }}
+                  onTouchEnd={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    
+                    // Only open if not already opening or open (prevent double opening)
+                    if (isOpeningRef.current || selectedCard) {
+                      return;
+                    }
+                    
+                    isOpeningRef.current = true;
+                    setSelectedCard(area);
+                    setTimeout(() => {
+                      isOpeningRef.current = false;
+                    }, 300);
+                  }}
                 >
-                  {/* Floating Images on Hover (Desktop) or Auto-show (Mobile Landscape) */}
+                  {/* Floating Images on Hover (Desktop only - not mobile) */}
                   <AnimatePresence>
                     {area.images && area.images.length >= 2 && 
-                     ((isMobileLandscape && cardsAnimatedIn) || 
-                      (!isMobileLandscape && hoveredCard === cardId)) && (
+                     // Only show on desktop hover, NOT on mobile (portrait or landscape)
+                     (!isMobileLandscape && !isMobilePortrait && hoveredCard === cardId) && (
                       <>
                         <motion.div
                           initial={{ opacity: 0, scale: 0.8, x: -20, y: -20, rotate: -5 }}
                           animate={{ opacity: 1, scale: 1, x: -40, y: -40, rotate: -10 }}
                           exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.2 } }}
                           transition={{ duration: 0.4, ease: "easeOut" }}
-                          className={`absolute -top-10 -left-10 w-32 h-24 rounded-lg overflow-hidden shadow-2xl pointer-events-none ${isMobileLandscape ? 'block' : 'hidden md:block'}`}
+                          className="absolute -top-10 -left-10 w-32 h-24 rounded-lg overflow-hidden shadow-2xl pointer-events-none hidden md:block"
                           style={{ zIndex: 99999 }}
                         >
                           <img 
@@ -414,7 +469,7 @@ const Expertise = () => {
                           animate={{ opacity: 1, scale: 1, x: 40, y: 40, rotate: 10 }}
                           exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.2 } }}
                           transition={{ duration: 0.5, ease: "easeOut", delay: 0.1 }}
-                          className={`absolute -bottom-10 -right-10 w-28 h-36 rounded-lg overflow-hidden shadow-2xl pointer-events-none ${isMobileLandscape ? 'block' : 'hidden md:block'}`}
+                          className="absolute -bottom-10 -right-10 w-28 h-36 rounded-lg overflow-hidden shadow-2xl pointer-events-none hidden md:block"
                           style={{ zIndex: 99999 }}
                         >
                           <img 
@@ -495,8 +550,27 @@ const Expertise = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setSelectedCard(null)}
-              className="fixed inset-0 z-[60] bg-background/80 backdrop-blur-md"
+              onTouchStart={(e) => {
+                e.stopPropagation();
+                touchStartRef.current = Date.now();
+              }}
+              onClick={(e) => {
+                const timeSinceTouch = Date.now() - touchStartRef.current;
+                if (timeSinceTouch < 500) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  return;
+                }
+                e.stopPropagation();
+                setSelectedCard(null);
+              }}
+              onTouchEnd={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                setSelectedCard(null);
+              }}
+              className="fixed inset-0 z-[9999] bg-background/80 backdrop-blur-md"
+              style={{ touchAction: 'manipulation', pointerEvents: 'auto' }}
             />
             
             {/* Modal */}
@@ -505,16 +579,49 @@ const Expertise = () => {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="fixed inset-0 z-[70] flex items-center justify-center p-4 md:p-8 pointer-events-none"
+              className="fixed inset-0 z-[10000] flex items-center justify-center p-4 md:p-8 pointer-events-none"
+              onClick={(e) => e.stopPropagation()}
+              onTouchEnd={(e) => e.stopPropagation()}
             >
-              <div className="bg-card border border-white/10 w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl pointer-events-auto relative flex flex-col md:flex-row">
+              <div 
+                className="bg-card border border-white/10 w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl pointer-events-auto relative flex flex-col md:flex-row"
+                onClick={(e) => e.stopPropagation()}
+                onTouchEnd={(e) => e.stopPropagation()}
+              >
                 
                 {/* Close Button */}
                 <button 
-                  onClick={() => setSelectedCard(null)}
-                  className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/20 hover:bg-black/40 text-white transition-colors"
+                  onTouchStart={(e) => {
+                    e.stopPropagation();
+                    touchStartRef.current = Date.now();
+                  }}
+                  onClick={(e) => {
+                    const timeSinceTouch = Date.now() - touchStartRef.current;
+                    if (timeSinceTouch < 500) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      return;
+                    }
+                    e.stopPropagation();
+                    e.preventDefault();
+                    setSelectedCard(null);
+                  }}
+                  onTouchEnd={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    setSelectedCard(null);
+                  }}
+                  className="absolute top-4 right-4 z-[10001] p-2 rounded-full bg-black/20 hover:bg-black/40 active:bg-black/60 text-white transition-colors cursor-pointer"
+                  style={{ 
+                    touchAction: 'manipulation',
+                    pointerEvents: 'auto',
+                    zIndex: 10001,
+                    WebkitTapHighlightColor: 'transparent'
+                  }}
+                  type="button"
+                  aria-label="Close"
                 >
-                  <LucideIcons.X className="w-6 h-6" />
+                  <LucideIcons.X className="w-6 h-6 pointer-events-none" />
                 </button>
 
                 {/* Image Side */}
@@ -580,7 +687,31 @@ const Expertise = () => {
                       )}
                     </div>
 
-                    <Button onClick={() => setSelectedCard(null)} className="w-full md:w-auto group">
+                    <Button 
+                      onTouchStart={(e) => {
+                        e.stopPropagation();
+                        touchStartRef.current = Date.now();
+                      }}
+                      onClick={(e) => {
+                        const timeSinceTouch = Date.now() - touchStartRef.current;
+                        if (timeSinceTouch < 500) {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          return;
+                        }
+                        e.stopPropagation();
+                        e.preventDefault();
+                        setSelectedCard(null);
+                      }}
+                      onTouchEnd={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        setSelectedCard(null);
+                      }}
+                      className="w-full md:w-auto group touch-manipulation cursor-pointer"
+                      style={{ touchAction: 'manipulation', pointerEvents: 'auto' }}
+                      type="button"
+                    >
                       Close Details
                       <LucideIcons.ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                     </Button>

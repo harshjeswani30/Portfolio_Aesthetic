@@ -29,7 +29,10 @@ const FloatingActionMenu = ({
     <div className={cn("relative", className)}>
       <Button
         onClick={toggleMenu}
-        className="w-10 h-10 rounded-full bg-white/90 hover:bg-white text-gray-900 shadow-[0_0_20px_rgba(0,0,0,0.1)] backdrop-blur-sm"
+        className="w-10 h-10 rounded-full text-gray-900 shadow-[0_0_20px_rgba(0,0,0,0.1)] backdrop-blur-sm"
+        style={{ backgroundColor: 'rgba(239, 233, 225, 0.9)' }}
+        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#EFE9E1'}
+        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(239, 233, 225, 0.9)'}
       >
         <motion.div
           animate={{ rotate: isOpen ? 45 : 0 }}
@@ -75,7 +78,10 @@ const FloatingActionMenu = ({
                   <Button
                     onClick={option.onClick}
                     size="sm"
-                    className="flex items-center gap-2 bg-white/90 hover:bg-white text-gray-900 shadow-[0_0_20px_rgba(0,0,0,0.1)] border-none rounded-xl backdrop-blur-sm"
+                    className="flex items-center gap-2 text-gray-900 shadow-[0_0_20px_rgba(0,0,0,0.1)] border-none rounded-xl backdrop-blur-sm"
+                    style={{ backgroundColor: 'rgba(239, 233, 225, 0.9)' }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#EFE9E1'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(239, 233, 225, 0.9)'}
                   >
                     {option.Icon}
                     <span>{option.label}</span>

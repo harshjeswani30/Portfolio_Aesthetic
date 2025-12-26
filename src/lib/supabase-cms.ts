@@ -76,6 +76,61 @@ export async function getSiteSettings() {
   return settings;
 }
 
+export async function getLogoSettings() {
+  const { data, error } = await supabase
+    .from('site_settings')
+    .select('*')
+    .eq('key', 'logo')
+    .maybeSingle();
+  
+  if (error && error.code !== 'PGRST116') {
+    console.error('Error fetching logo settings:', error);
+    return {
+      logoUrl: '',
+      logoText: 'CS',
+      faviconUrl: '',
+    };
+  }
+  
+  return ((data as any)?.value as any) || {
+    logoUrl: '',
+    logoText: 'CS',
+    faviconUrl: '',
+  };
+}
+
+export async function updateLogoSettings(settings: { logoUrl?: string; logoText?: string; faviconUrl?: string }) {
+  const existingQuery = supabase
+    .from('site_settings')
+    .select('id, value')
+    .eq('key', 'logo')
+    .maybeSingle();
+  
+  const { data: existing } = await (existingQuery as any);
+
+  if (existing && (existing as any).id) {
+    const currentValue = ((existing as any).value as any) || {};
+    const result = await ((supabase.from('site_settings') as any)
+      .update({ 
+        value: { ...currentValue, ...settings }, 
+        updated_at: new Date().toISOString() 
+      })
+      .eq('key', 'logo'));
+    
+    if (result.error) throw result.error;
+    return { ...currentValue, ...settings };
+  } else {
+    const { data, error } = await supabase
+      .from('site_settings')
+      .insert({ key: 'logo', value: settings } as any)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return ((data as any)?.value as any) || settings;
+  }
+}
+
 export async function getProfileCardSettings() {
   const { data, error } = await supabase
     .from('site_settings')

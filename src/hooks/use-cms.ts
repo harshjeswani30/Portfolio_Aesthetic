@@ -89,6 +89,35 @@ export function useUpdateAboutFooterText() {
   return { mutate, isLoading, error };
 }
 
+// Logo Settings
+export function useLogoSettings() {
+  return useSupabaseQuery(
+    () => cms.getLogoSettings(),
+    []
+  );
+}
+
+export function useUpdateLogoSettings() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const mutate = async (settings: Parameters<typeof cms.updateLogoSettings>[0]) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const result = await cms.updateLogoSettings(settings);
+      setIsLoading(false);
+      return result;
+    } catch (err) {
+      setError(err as Error);
+      setIsLoading(false);
+      throw err;
+    }
+  };
+
+  return { mutate, isLoading, error };
+}
+
 // Meta Tags Settings
 export function useMetaTags() {
   return useSupabaseQuery(

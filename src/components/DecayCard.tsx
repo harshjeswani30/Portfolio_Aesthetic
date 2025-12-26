@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, ReactNode } from 'react';
 import { gsap } from 'gsap';
+import { convertDriveUrlToDirectImageUrl } from '@/lib/image-utils';
 
 interface DecayCardProps {
   width?: number;
@@ -14,6 +15,8 @@ const DecayCard: React.FC<DecayCardProps> = ({
   image = 'https://picsum.photos/300/400?grayscale',
   children
 }) => {
+  // Convert Google Drive URL to direct image URL if needed
+  const imageUrl = convertDriveUrlToDirectImageUrl(image);
   const svgRef = useRef<HTMLDivElement | null>(null);
   const displacementMapRef = useRef<SVGFEDisplacementMapElement | null>(null);
   const cursor = useRef<{ x: number; y: number }>({
@@ -142,7 +145,7 @@ const DecayCard: React.FC<DecayCardProps> = ({
         </filter>
         <g>
           <image
-            href={image}
+            href={imageUrl}
             x="0"
             y="0"
             width="600"

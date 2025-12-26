@@ -10,9 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/components/providers/SupabaseAuthProvider";
 import { ArrowRight, Loader2, Lock, KeyRound } from "lucide-react";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router";
 import { supabase } from "@/lib/supabase";
+import { useLogoSettings } from "@/hooks/use-cms";
+import { convertDriveUrlToDirectImageUrl } from "@/lib/image-utils";
 
 interface AuthProps {
   redirectAfterAuth?: string;
@@ -23,6 +25,29 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const originalThemeRef = useRef<string | null>(null);
+  const { data: logoSettings } = useLogoSettings();
+
+  // Force dark theme for auth page
+  useEffect(() => {
+    // Store original theme
+    originalThemeRef.current = document.documentElement.classList.contains('light') ? 'light' : 'dark';
+    
+    // Force dark theme
+    document.documentElement.classList.remove('light');
+    document.documentElement.classList.add('dark');
+    
+    // Cleanup: restore original theme when component unmounts
+    return () => {
+      if (originalThemeRef.current === 'light') {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+      } else {
+        document.documentElement.classList.remove('light');
+        document.documentElement.classList.add('dark');
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -94,11 +119,26 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
             <CardHeader className="text-center space-y-2">
               <div className="flex justify-center">
                 <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4 ring-1 ring-white/10">
-                  <img
-                    src="/logo.svg"
-                    alt="Logo"
-                    className="w-10 h-10"
-                  />
+                  {logoSettings?.logoUrl ? (
+                    <img
+                      src={convertDriveUrlToDirectImageUrl(logoSettings.logoUrl)}
+                      alt="Logo"
+                      className="w-10 h-10 object-contain"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        if (target.nextElementSibling) {
+                          (target.nextElementSibling as HTMLElement).style.display = 'flex';
+                        }
+                      }}
+                    />
+                  ) : null}
+                  <div 
+                    className={`text-primary font-bold text-xl ${logoSettings?.logoUrl ? 'hidden' : ''}`}
+                    style={{ display: logoSettings?.logoUrl ? 'none' : 'flex' }}
+                  >
+                    {logoSettings?.logoText || 'CS'}
+                  </div>
                 </div>
               </div>
               <CardTitle className="text-2xl font-display tracking-tight">

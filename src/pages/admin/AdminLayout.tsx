@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/components/providers/SupabaseAuthProvider";
 import { useTheme } from "@/components/providers/ThemeProvider";
+import { useLogoSettings } from "@/hooks/use-cms";
+import { convertDriveUrlToDirectImageUrl } from "@/lib/image-utils";
 
 type Theme = 'light' | 'dark';
 import {
@@ -38,6 +40,7 @@ export default function AdminLayout() {
   const { isAuthenticated, isLoading, signOut, isAdmin } = useAuth();
   const { theme, setTheme } = useTheme();
   const originalThemeRef = useRef<Theme | null>(null);
+  const { data: logoSettings } = useLogoSettings();
 
   // Force dark theme for admin panel
   useEffect(() => {
@@ -106,8 +109,24 @@ export default function AdminLayout() {
             <Sidebar collapsible="icon" className="border-r border-white/10">
               <SidebarHeader className="p-4">
                 <div className="flex items-center gap-3 px-1">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold">
-                    CS
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold overflow-hidden">
+                    {logoSettings?.logoUrl ? (
+                      <img
+                        src={convertDriveUrlToDirectImageUrl(logoSettings.logoUrl)}
+                        alt="Logo"
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          if (target.nextElementSibling) {
+                            (target.nextElementSibling as HTMLElement).style.display = 'flex';
+                          }
+                        }}
+                      />
+                    ) : null}
+                    <span className={logoSettings?.logoUrl ? 'hidden' : ''} style={{ display: logoSettings?.logoUrl ? 'none' : 'block' }}>
+                      {logoSettings?.logoText || 'CS'}
+                    </span>
                   </div>
                   <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
                     <span className="font-bold">Admin Panel</span>

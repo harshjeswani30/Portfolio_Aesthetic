@@ -25,16 +25,28 @@ const Contact = () => {
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
   const pillNavRef = useRef<HTMLDivElement>(null);
-  const { data: pageData } = usePage("contact");
+  const { data: pageData, isLoading } = usePage("contact");
   
-  const content = (pageData as any)?.content || {
-    tagline: "Get in Touch",
-    title: "Let's Connect",
-    description: "Available for strategic consulting, creative collaborations, and meaningful conversations about design and innovation.",
-    email: "hello@example.com",
-    linkedin: "https://linkedin.com",
-    twitter: "https://twitter.com"
-  };
+  // Only use CMS content when loaded, prevent default text flash
+  const content = (pageData as any)?.content ? (pageData as any).content : (
+    isLoading 
+      ? {
+          tagline: "",
+          title: "",
+          description: "",
+          email: "",
+          linkedin: "",
+          twitter: ""
+        }
+      : {
+          tagline: "Get in Touch",
+          title: "Let's Connect",
+          description: "Available for strategic consulting, creative collaborations, and meaningful conversations about design and innovation.",
+          email: "hello@example.com",
+          linkedin: "https://linkedin.com",
+          twitter: "https://twitter.com"
+        }
+  );
 
   const socialLinks = [
     {
@@ -150,12 +162,18 @@ const Contact = () => {
               className="inline-block mb-6"
             >
               <span className="text-xs font-body tracking-[0.3em] uppercase text-muted-foreground">
-                {content.tagline}
+                {content.tagline || (isLoading ? "" : "")}
               </span>
             </motion.div>
             
             <h1 className="text-5xl md:text-7xl lg:text-8xl font-display font-light text-foreground mb-6">
-              {content.title.split(" ").slice(0, -1).join(" ")} <span className="gradient-text italic">{content.title.split(" ").slice(-1)}</span>
+              {content.title ? (
+                <>
+                  {content.title.split(" ").slice(0, -1).join(" ")} <span className="gradient-text italic">{content.title.split(" ").slice(-1)}</span>
+                </>
+              ) : (
+                <span className="invisible">Let's Connect</span>
+              )}
             </h1>
             
             <motion.p
@@ -163,7 +181,7 @@ const Contact = () => {
               transition={{ duration: 0.8, delay: 0.4 }}
               className="text-lg md:text-xl text-muted-foreground font-body max-w-2xl mx-auto leading-relaxed"
             >
-              {content.description}
+              {content.description || (isLoading && <span className="invisible">Loading...</span>)}
             </motion.p>
           </motion.div>
           {/* Gradient Divider */}

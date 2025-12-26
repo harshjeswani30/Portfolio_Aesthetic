@@ -1,4 +1,5 @@
-import { useRef, forwardRef, useImperativeHandle } from 'react';
+import { useRef, forwardRef, useImperativeHandle, useEffect, useState } from 'react';
+import { convertDriveUrlToDirectImageUrl } from '@/lib/image-utils';
 
 interface GalleryItem {
   id: string;
@@ -33,6 +34,59 @@ const HorizontalGallery = forwardRef<HorizontalGalleryRef, HorizontalGalleryProp
     const titleRefs = useRef<HTMLElement[]>([]);
     const startTextRefs = useRef<HTMLElement[]>([]);
     const endTextRefs = useRef<HTMLElement[]>([]);
+    const [imagesLoaded, setImagesLoaded] = useState<Record<string, boolean>>({});
+    const [imagesErrored, setImagesErrored] = useState<Record<string, boolean>>({});
+
+    // Preload all images to ensure they're loaded before display
+    useEffect(() => {
+      if (!items || items.length === 0) return;
+
+      const loadPromises: Promise<void>[] = [];
+      const loadedState: Record<string, boolean> = {};
+      const erroredState: Record<string, boolean> = {};
+
+      items.forEach((item) => {
+        if (!item.image) {
+          erroredState[item.id] = true;
+          return;
+        }
+
+        const promise = new Promise<void>((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          
+          img.onload = () => {
+            loadedState[item.id] = true;
+            resolve();
+          };
+          
+          img.onerror = () => {
+            console.warn(`Failed to load image for item ${item.id}:`, item.image);
+            erroredState[item.id] = true;
+            resolve(); // Resolve anyway to not block other images
+          };
+          
+          // Set src after handlers to ensure they're attached (convert Google Drive URLs if needed)
+          img.src = convertDriveUrlToDirectImageUrl(item.image);
+          
+          // Timeout after 10 seconds
+          setTimeout(() => {
+            if (!loadedState[item.id] && !erroredState[item.id]) {
+              console.warn(`Image load timeout for item ${item.id}:`, item.image);
+              erroredState[item.id] = true;
+              resolve();
+            }
+          }, 10000);
+        });
+
+        loadPromises.push(promise);
+      });
+
+      Promise.all(loadPromises).then(() => {
+        setImagesLoaded(loadedState);
+        setImagesErrored(erroredState);
+      });
+    }, [items]);
 
     useImperativeHandle(ref, () => ({
       containerRef,
@@ -126,20 +180,79 @@ const HorizontalGallery = forwardRef<HorizontalGalleryRef, HorizontalGalleryProp
                   ref={(el) => {
                     if (el) {
                       imageInnerRefs.current[index] = el;
+                      // Update background image once element is ready (convert Google Drive URLs if needed)
+                      if (item.image && !imagesErrored[item.id] && imagesLoaded[item.id]) {
+                        el.style.backgroundImage = `url(${convertDriveUrlToDirectImageUrl(item.image)})`;
+                        el.style.opacity = '1';
+                      }
                     }
                   }}
                   className="gallery__item-imginner"
                   style={{
-                    backgroundImage: `url(${item.image})`,
+                    backgroundImage: item.image && !imagesErrored[item.id] && imagesLoaded[item.id] ? `url(${convertDriveUrlToDirectImageUrl(item.image)})` : 'none',
                     backgroundSize: 'cover',
                     backgroundPosition: '50% 0',
+                    backgroundRepeat: 'no-repeat',
                     width: '100%',
                     height: 'calc(100% + 14vh)',
                     marginTop: '-7vh',
                     willChange: 'transform',
                     filter: 'saturate(0) brightness(0)', // Initial filter state
+                    opacity: item.image && (imagesLoaded[item.id] || !imagesErrored[item.id]) ? 1 : 0,
+                    transition: 'opacity 0.3s ease-in-out',
                   }}
-                />
+                >
+                  {/* Preload image using img tag for better browser handling */}
+                  {item.image && (
+                    <img
+                      src={convertDriveUrlToDirectImageUrl(item.image)}
+                      alt={item.title || `Project ${item.number}`}
+                      style={{
+                        position: 'absolute',
+                        width: 0,
+                        height: 0,
+                        opacity: 0,
+                        pointerEvents: 'none',
+                      }}
+                      loading="eager"
+                      crossOrigin="anonymous"
+                      onLoad={(e) => {
+                        const img = e.currentTarget;
+                        if (img.src) {
+                          setImagesLoaded(prev => ({ ...prev, [item.id]: true }));
+                          // Update the background image once loaded
+                          const div = imageInnerRefs.current[index];
+                          if (div) {
+                            div.style.backgroundImage = `url(${img.src})`;
+                            div.style.opacity = '1';
+                          }
+                        }
+                      }}
+                      onError={() => {
+                        console.warn(`Image failed to load for item ${item.id}:`, item.image);
+                        setImagesErrored(prev => ({ ...prev, [item.id]: true }));
+                      }}
+                    />
+                  )}
+                  {/* Error state placeholder */}
+                  {imagesErrored[item.id] && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'rgba(255, 255, 255, 0.5)',
+                        fontSize: '0.875rem',
+                        zIndex: 1,
+                      }}
+                    >
+                      Image unavailable
+                    </div>
+                  )}
+                </div>
                 {/* Subtitle overlay on image */}
                 {item.title && (
                   <p
